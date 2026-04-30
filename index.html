@@ -564,18 +564,21 @@ function init(){
     CATS[k] = { ...v, dedup: r => Object.values(r).join('|') };
   }
 
-  // Load data
+  // Load data — always use INIT_DATA as the baseline so any device sees the
+  // same deployed records; localStorage only contributes records not yet in INIT_DATA.
   for(const key of Object.keys(CATS)){
-    const saved = load(key);
-    if(saved && saved.length>0){
-      DB[key] = saved;
-    } else if(INIT_DATA[key]){
-      DB[key] = INIT_DATA[key].records || [];
-      save(key, DB[key]);
+    if(INIT_DATA[key]){
+      const base = INIT_DATA[key].records || [];
+      const saved = load(key) || [];
+      const cfg = CATS[key];
+      const dedupFn = typeof cfg.dedup === 'function' ? cfg.dedup : r => Object.values(r).join('|');
+      const baseSet = new Set(base.map(r => dedupFn(r)));
+      const extras = saved.filter(r => !baseSet.has(dedupFn(r)));
+      DB[key] = [...base, ...extras];
     } else {
-      DB[key] = [];
+      DB[key] = load(key) || [];
     }
-    FS[key] = {from:'',to:'',prov:'',status:'',q:'',sortCol:'',sortDir:'asc',page:1};
+    FS[key] = {from:'',to:'',prov:'',status:'',q:'',year:'',sortCol:'',sortDir:'asc',page:1};
   }
 
   populateYearSelect();
@@ -733,7 +736,7 @@ function getFiltered(key, useGlobalYear=false){
   }
   if(fs.prov) data=data.filter(r=>(r[cfg.provCol]||'').includes(fs.prov));
   if(fs.status) data=data.filter(r=>(r[cfg.statusCol||'สถานะ']||'').includes(fs.status));
-  if(fs.q){const q=fs.q.toLowerCase();data=data.filter(r=>Object.values(r).some(v=>String(v).toLowerCase().includes(q)));}
+  if(fs.q){const q=fs.q.toLowerCase();data=data.filter(r=>Object.values(r).some(val=>String(val).toLowerCase().includes(q)));}
   if(fs.sortCol){
     data.sort((a,b)=>{const cmp=(a[fs.sortCol]||'').localeCompare(b[fs.sortCol]||'','th');return fs.sortDir==='asc'?cmp:-cmp;});
   }
@@ -766,7 +769,7 @@ function renderTable(key){
   el.innerHTML=`
   <div class="tbl-header">
     <div><div class="tbl-title">${cfg.label}</div>
-    <div class="tbl-meta">แสดง ${Math.min(st+1,total)}–${Math.min(st+ROWS,total)} จาก ${total} รายการ${total<(DB[key]||[]).length?' (กรองจาก '+(DB[key]||[]).length+')':''}</div></div>
+    <div class="tbl-meta">${total===0?'ไม่มีข้อมูล':'แสดง '+(st+1)+'–'+Math.min(st+ROWS,total)+' จาก '+total+' รายการ'+(total<(DB[key]||[]).length?' (กรองจาก '+(DB[key]||[]).length+')':'')}</div></div>
   </div>
   <div class="tbl-wrap">
     <div class="tbl-scroll"><table><thead><tr>${thHTML}</tr></thead><tbody>${bodyHTML}</tbody></table></div>
@@ -935,7 +938,7 @@ function buildCharts(){
                 const val=ds.data[i]||0;
                 const pct=grand>0?Math.round(val/grand*100):0;
                 return{
-                  text:`${lbl}  ${val}件 (${pct}%)`,
+                  text:`${lbl}  ${val} รายการ (${pct}%)`,
                   fillStyle:ds.backgroundColor[i],
                   strokeStyle:border,lineWidth:1,
                   hidden:false,index:i,
@@ -1410,7 +1413,7 @@ function toggleTheme(){
   const dark=document.documentElement.getAttribute('data-theme')==='dark';
   document.documentElement.setAttribute('data-theme',dark?'light':'dark');
   save('theme',dark?'light':'dark');
-  if(currentSec==='overview')buildCharts();
+  if(currentSec==='overview')rebuildAll();
 }
 
 // ══════════════════════════════════════════════════════════
