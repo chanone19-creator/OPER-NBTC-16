@@ -545,6 +545,15 @@ function getAllYears(){
   }
   return [...years].sort((a,b)=>b-a);
 }
+function getYearsFor(key){
+  const cfg=CATS[key];if(!cfg)return[];
+  const years=new Set();
+  for(const r of(DB[key]||[])){
+    const y=getThaiYear(r[cfg.dateCol]||'');
+    if(y)years.add(y);
+  }
+  return[...years].sort((a,b)=>b-a);
+}
 function populateYearSelect(){
   const sel=document.getElementById('global-year');
   const cur=sel.value;
@@ -596,7 +605,7 @@ function buildSidebarNav(){
   el.innerHTML=Object.entries(CATS).map(([k,cfg],i)=>`
     <div class="nav-item" id="nav-${k}" onclick="sw('${k}',this)">
       <span class="nav-dot" style="background:${resolveColor(cfg.color)}"></span>
-      <span>${cfg.short}</span>
+      <span>${esc(cfg.short)}</span>
       <span class="nav-badge" id="nb-${k}">0</span>
     </div>`).join('');
 }
@@ -631,12 +640,11 @@ function buildDynamicSections(){
   for(const[k,cfg] of Object.entries(CATS)){
     const div=document.createElement('div');
     div.id=`sec-${k}`; div.className='section';
-    const colorVar=resolveColor(cfg.color);
     div.innerHTML=`
       <div class="sec-hdr">
-        <div class="sec-icon" style="background:${resolveColor(cfg.colorBg)}">${cfg.icon}</div>
+        <div class="sec-icon" style="background:${resolveColor(cfg.colorBg)}">${esc(cfg.icon)}</div>
         <div class="sec-text">
-          <h2>${cfg.label}</h2>
+          <h2>${esc(cfg.label)}</h2>
           <p><span id="yr-tag-${k}"></span></p>
         </div>
         <div class="sec-actions">
@@ -657,7 +665,7 @@ function buildDynamicSections(){
 function buildFilter(key){
   const el=document.getElementById(`filter-${key}`);
   if(!el)return;
-  const yrs=getAllYears();
+  const yrs=getYearsFor(key);
   el.innerHTML=`
   <div class="filter-bar">
     <div class="fg"><label>ปี พ.ศ.</label>
@@ -768,7 +776,7 @@ function renderTable(key){
 
   el.innerHTML=`
   <div class="tbl-header">
-    <div><div class="tbl-title">${cfg.label}</div>
+    <div><div class="tbl-title">${esc(cfg.label)}</div>
     <div class="tbl-meta">${total===0?'ไม่มีข้อมูล':'แสดง '+(st+1)+'–'+Math.min(st+ROWS,total)+' จาก '+total+' รายการ'+(total<(DB[key]||[]).length?' (กรองจาก '+(DB[key]||[]).length+')':'')}</div></div>
   </div>
   <div class="tbl-wrap">
@@ -857,8 +865,8 @@ function buildOvCards(){
     const colorVal=resolveColor(cfg.color);
     return`<div class="stat-card" style="--cc:${colorVal}" onclick="sw('${k}',document.getElementById('nav-${k}'))">
       <div class="stat-hdr">
-        <div class="stat-ico" style="background:${resolveColor(cfg.colorBg)}">${cfg.icon}</div>
-        <div class="stat-lbl">${cfg.short}</div>
+        <div class="stat-ico" style="background:${resolveColor(cfg.colorBg)}">${esc(cfg.icon)}</div>
+        <div class="stat-lbl">${esc(cfg.short)}</div>
       </div>
       <div class="stat-num" style="color:${colorVal}">${n}</div>
       <div class="stat-pct">
@@ -1297,7 +1305,9 @@ function processFile(file){
   reader.readAsArrayBuffer(file);
 }
 function showImpPreview(newRecs){
+  if(!impTarget)return;
   const cfg=CATS[impTarget];
+  if(!cfg)return;
   const dedupFn=cfg.dedup||(r=>Object.values(r).join('|'));
   const existKeys=new Set((DB[impTarget]||[]).map(r=>dedupFn(r)));
   const toAdd=newRecs.filter(r=>!existKeys.has(dedupFn(r)));
