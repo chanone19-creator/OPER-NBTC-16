@@ -564,16 +564,19 @@ function init(){
     CATS[k] = { ...v, dedup: r => Object.values(r).join('|') };
   }
 
-  // Load data
+  // Load data — always use INIT_DATA as the baseline so any device sees the
+  // same deployed records; localStorage only contributes records not yet in INIT_DATA.
   for(const key of Object.keys(CATS)){
-    const saved = load(key);
-    if(saved && saved.length>0){
-      DB[key] = saved;
-    } else if(INIT_DATA[key]){
-      DB[key] = INIT_DATA[key].records || [];
-      save(key, DB[key]);
+    if(INIT_DATA[key]){
+      const base = INIT_DATA[key].records || [];
+      const saved = load(key) || [];
+      const cfg = CATS[key];
+      const dedupFn = typeof cfg.dedup === 'function' ? cfg.dedup : r => Object.values(r).join('|');
+      const baseSet = new Set(base.map(r => dedupFn(r)));
+      const extras = saved.filter(r => !baseSet.has(dedupFn(r)));
+      DB[key] = [...base, ...extras];
     } else {
-      DB[key] = [];
+      DB[key] = load(key) || [];
     }
     FS[key] = {from:'',to:'',prov:'',status:'',q:'',year:'',sortCol:'',sortDir:'asc',page:1};
   }
@@ -935,7 +938,7 @@ function buildCharts(){
                 const val=ds.data[i]||0;
                 const pct=grand>0?Math.round(val/grand*100):0;
                 return{
-                  text:`${lbl}  ${val}件 (${pct}%)`,
+                  text:`${lbl}  ${val} รายการ (${pct}%)`,
                   fillStyle:ds.backgroundColor[i],
                   strokeStyle:border,lineWidth:1,
                   hidden:false,index:i,
