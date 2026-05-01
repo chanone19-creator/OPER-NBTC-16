@@ -738,7 +738,7 @@ function getFiltered(key, useGlobalYear=false){
     data=data.filter(r=>getThaiYear(r[cfg.dateCol]||'')==parseInt(yearFilter));
   }
   if(fs.from||fs.to){
-    const fr=fs.from?new Date(fs.from):null;
+    const fr=fs.from?new Date(fs.from+'T00:00:00'):null;
     const to=fs.to?new Date(fs.to+'T23:59:59'):null;
     data=data.filter(r=>{const d=parseDate(r[cfg.dateCol]);if(!d)return true;if(fr&&d<fr)return false;if(to&&d>to)return false;return true;});
   }
@@ -769,7 +769,7 @@ function renderTable(key){
   const thHTML=cols.map(c=>{
     const cls=fs.sortCol===c.k?'sa':'';
     const cls2=fs.sortCol===c.k&&fs.sortDir==='desc'?'sd':cls;
-    return `<th class="${cls2}" onclick="sortT('${key}','${c.k}')">${c.l}</th>`;
+    return `<th class="${cls2}" onclick="sortT('${key}','${c.k.replace(/'/g,"\\'")}'">${esc(c.l)}</th>`;
   }).join('');
   const bodyHTML=page.length?page.map(r=>`<tr>${cols.map(c=>`<td class="${tdCls(c.t)}">${renderCell(r[c.k]||'',c.t)}</td>`).join('')}</tr>`).join('')
     :`<tr><td colspan="${cols.length}"><div class="empty"><div class="empty-ico">🔍</div><p>ไม่พบข้อมูลที่ตรงกับเงื่อนไข</p></div></td></tr>`;
@@ -1169,11 +1169,6 @@ function getStaffStats(){
   return stats;
 }
 
-function getInspectorCounts(){
-  const st=getStaffStats();
-  return Object.fromEntries(FIXED_STAFF.map(n=>[n,st[n].total]));
-}
-
 function cleanName(s){
   return s.replace(/\s*\([^)]+\)\s*$/,'').replace(/\s+/g,' ').trim();
 }
@@ -1399,7 +1394,7 @@ function saveNewCat(){
   buildDynamicSections();
   updateNavCounts();
   closeNewCat();
-  toast(`สร้างประเภทงาน "${label}" สำเร็จ · นำเข้าข้อมูลจาก Excel ได้เลย`,'ok');
+  toast(`สร้างประเภทงาน "${esc(label)}" สำเร็จ · นำเข้าข้อมูลจาก Excel ได้เลย`,'ok');
   sw(key,document.getElementById(`nav-${key}`));
 }
 
