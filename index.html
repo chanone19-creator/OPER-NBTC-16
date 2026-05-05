@@ -250,7 +250,7 @@ td.tr2{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
     <div class="nav-group">ภาพรวม</div>
     <div class="nav-item active" onclick="sw('overview',this)">
       <span style="font-size:15px">◫</span><span>ภาพรวมทั้งหมด</span>
-      <span class="nav-badge" id="nb-total">85</span>
+      <span class="nav-badge" id="nb-total">0</span>
     </div>
     <div class="nav-div"></div>
     <div class="nav-group">ประเภทงาน</div>
@@ -765,7 +765,7 @@ function renderTable(key){
   const page=filtered.slice(st,st+ROWS);
   const el=document.getElementById(`table-${key}`);if(!el)return;
 
-  const cols=cfg.cols||Object.keys((DB[key]||[{}])[0]||{}).slice(0,7).map(k=>({k,l:k,t:'text'}));
+  const cols=(cfg.cols&&cfg.cols.length>0)?cfg.cols:Object.keys((DB[key]||[{}])[0]||{}).slice(0,7).map(c=>({k:c,l:c,t:'text'}));
   const thHTML=cols.map(c=>{
     const cls=fs.sortCol===c.k?'sa':'';
     const cls2=fs.sortCol===c.k&&fs.sortDir==='desc'?'sd':cls;
@@ -1275,6 +1275,7 @@ function openImp(key){
   document.getElementById('imp-res').style.display='none';
   document.getElementById('btn-imp-ok').style.display='none';
   document.getElementById('fi-file').value='';
+  document.getElementById('dz').classList.remove('dg');
   document.getElementById('imp-modal').classList.add('open');
 }
 function closeImp(){document.getElementById('imp-modal').classList.remove('open');impTarget=impPreview=null;}
@@ -1286,7 +1287,7 @@ dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dg');cons
 
 function handleFile(e){const f=e.target.files[0];if(f)processFile(f);}
 function processFile(file){
-  if(!file.name.endsWith('.xlsx')){toast('รองรับเฉพาะไฟล์ .xlsx','er');return;}
+  if(!file.name.toLowerCase().endsWith('.xlsx')){toast('รองรับเฉพาะไฟล์ .xlsx','er');return;}
   const reader=new FileReader();
   reader.onload=e=>{
     try{
@@ -1295,7 +1296,7 @@ function processFile(file){
       const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
       const recs=rows.map(r=>Object.fromEntries(Object.entries(r).map(([k,v])=>[k,String(v??'').trim()])));
       showImpPreview(recs);
-    }catch(err){toast('อ่านไฟล์ไม่ได้: '+err.message,'er');}
+    }catch(err){toast('อ่านไฟล์ไม่ได้: '+esc(err.message),'er');}
   };
   reader.readAsArrayBuffer(file);
 }
