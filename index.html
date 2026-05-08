@@ -743,7 +743,7 @@ function getFiltered(key, useGlobalYear=false){
     data=data.filter(r=>{const d=parseDate(r[cfg.dateCol]);if(!d)return true;if(fr&&d<fr)return false;if(to&&d>to)return false;return true;});
   }
   if(fs.prov) data=data.filter(r=>(r[cfg.provCol]||'').includes(fs.prov));
-  if(fs.status) data=data.filter(r=>(r[cfg.statusCol||'สถานะ']||'').includes(fs.status));
+  if(fs.status) data=data.filter(r=>(r[cfg.statusCol||'สถานะ']||'')===fs.status);
   if(fs.q){const q=fs.q.toLowerCase();data=data.filter(r=>Object.values(r).some(val=>String(val).toLowerCase().includes(q)));}
   if(fs.sortCol){
     data.sort((a,b)=>{const cmp=(a[fs.sortCol]||'').localeCompare(b[fs.sortCol]||'','th');return fs.sortDir==='asc'?cmp:-cmp;});
@@ -1209,7 +1209,7 @@ function buildInspDetail(){
     const appPct=st.total>0?Math.round(st.approved/st.total*100):0;
     const sharePct=grandTotal>0?((st.total/grandTotal)*100).toFixed(1):0;
     const progW=Math.round(st.total/maxTotal*100);
-    const titlePart=name.match(/^(นาย|นาง|นางสาว)/)?name.match(/^(นาย|นาง|นางสาว)/)[0]:'';
+    const titleMatch=name.match(/^(นาย|นาง|นางสาว)/);const titlePart=titleMatch?titleMatch[0]:'';
     const nameParts=name.replace(/^(นาย|นาง|นางสาว)\s*/,'').split(/\s+/);
     const displayName=titlePart?`${titlePart}<br>${nameParts.join(' ')}`:name;
     const catEntries=Object.entries(st.byCat).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,4);
@@ -1239,8 +1239,8 @@ function buildInspDetail(){
           const lbl=catLabels[catKey]||{short:(CATS[catKey]?.short||catKey),icon:'📋'};
           const catPct=st.total>0?Math.round(cnt/st.total*100):0;
           return`<div class="staff-cat-row">
-            <span style="font-size:11px">${lbl.icon}</span>
-            <span class="staff-cat-name" style="color:${mutedColor()}">${lbl.short}</span>
+            <span style="font-size:11px">${esc(lbl.icon)}</span>
+            <span class="staff-cat-name" style="color:${mutedColor()}">${esc(lbl.short)}</span>
             <div style="height:4px;width:36px;background:var(--border);border-radius:2px;overflow:hidden;flex-shrink:0">
               <div style="height:100%;width:${catPct}%;background:${color};border-radius:2px"></div>
             </div>
@@ -1264,6 +1264,7 @@ function sw(key, navEl){
   if(navEl)navEl.classList.add('active');
   currentSec=key;
   if(key==='overview')rebuildAll();
+  else renderTable(key);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1327,8 +1328,9 @@ function doImport(){
   closeImp();
   updateNavCounts(); buildProvNav();
   populateYearSelect();
-  renderTable(impTarget);
+  FS[impTarget]={from:'',to:'',prov:'',status:'',q:'',year:'',sortCol:'',sortDir:'asc',page:1};
   buildFilter(impTarget);
+  renderTable(impTarget);
   if(currentSec==='overview')rebuildAll();
   toast(`เพิ่มข้อมูลสำเร็จ ${added} รายการ`,'ok');
 }
@@ -1407,7 +1409,8 @@ function exportCurrent(){
   const data=getFiltered(currentSec);
   if(!data.length){toast('ไม่มีข้อมูล','inf');return;}
   const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),(CATS[currentSec]?.short||currentSec).substring(0,28));
+  const sheetName=(CATS[currentSec]?.short||currentSec).replace(/[\\\/\?\*\[\]\:]/g,'').substring(0,31);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),sheetName||'Sheet1');
   XLSX.writeFile(wb,`NBTC_R16_${currentSec}_${new Date().toISOString().slice(0,10)}.xlsx`);
   toast(`Export ${data.length} รายการ`,'ok');
 }
