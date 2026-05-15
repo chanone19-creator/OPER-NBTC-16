@@ -971,24 +971,50 @@ function isPassResult(val) {
   return ['ผ่าน','pass','ถูกต้อง','ปกติ','สมบูรณ์','อนุมัติ','ตรงตามมาตรฐาน','compliant'].some(p => v.includes(p));
 }
 
+// fingerprint ของแต่ละแถว — ใช้ทุกค่าในแถวเป็น key สำหรับ dedup
+function rowKey(r) { return Object.values(r).join('||'); }
+
 function showImpPreview(recs) {
   if (!impTarget) return;
-  impPreview = recs;
   impDetectedCols = detectCols(recs);
 
-  // Count valid year records
-  const validRecs = recs.filter(r => {
+  // ── ชั้น 1: dedup ภายในไฟล์เดียวกัน ──────────────────────
+  const seenInFile = new Set();
+  const dedupedFile = recs.filter(r => {
+    const k = rowKey(r);
+    if (seenInFile.has(k)) return false;
+    seenInFile.add(k); return true;
+  });
+  const dupInFile = recs.length - dedupedFile.length;
+
+  // ── กรองเฉพาะแถวที่ระบุปีได้ ────────────────────────────
+  const validRecs = dedupedFile.filter(r => {
     const yr = impDetectedCols.date ? extractYear(r[impDetectedCols.date]) : null;
     return yr && YEARS.includes(yr);
   });
+  const noYear = dedupedFile.length - validRecs.length;
 
-  const resEl = document.getElementById('imp-res');
-  resEl.style.display = 'block';
+  // ── ชั้น 2: dedup กับข้อมูลที่นำเข้าแล้ว (importDB) ───────
+  if (!window.importDB) window.importDB = {};
+  const existKeys = new Set((window.importDB[impTarget] || []).map(rowKey));
+  const newRecs = validRecs.filter(r => !existKeys.has(rowKey(r)));
+  const dupVsDB = validRecs.length - newRecs.length;
 
+  impPreview = newRecs;   // เก็บเฉพาะรายการใหม่จริงๆ
+
+  document.getElementById('imp-res').style.display = 'block';
   document.getElementById('imp-summary').innerHTML = `
-    <div class="imp-row"><span>📋 รายการทั้งหมดในไฟล์</span><span class="imp-num">${recs.length}</span></div>
-    <div class="imp-row"><span>✅ รายการที่ระบุปีได้ (2560–2569)</span><span class="imp-num" style="color:var(--green)">${validRecs.length}</span></div>
-    <div class="imp-row"><span>⚠ รายการที่ระบุปีไม่ได้</span><span class="imp-num" style="color:var(--amber)">${recs.length - validRecs.length}</span></div>`;
+    <div class="imp-row"><span>📋 รายการทั้งหมดในไฟล์</span>
+      <span class="imp-num">${recs.length}</span></div>
+    <div class="imp-row"><span>🔁 ซ้ำกันภายในไฟล์ (ข้ามไป)</span>
+      <span class="imp-num" style="color:var(--muted)">${dupInFile}</span></div>
+    <div class="imp-row"><span>⚠ ระบุปีงบประมาณไม่ได้ (ข้ามไป)</span>
+      <span class="imp-num" style="color:var(--amber)">${noYear}</span></div>
+    <div class="imp-row"><span>⊘ ซ้ำกับข้อมูลที่นำเข้าแล้ว (ข้ามไป)</span>
+      <span class="imp-num" style="color:var(--muted)">${dupVsDB}</span></div>
+    <div class="imp-row" style="border-top:2px solid var(--border);margin-top:4px;padding-top:6px;">
+      <span><strong>✅ รายการใหม่ที่จะเพิ่ม</strong></span>
+      <span class="imp-num" style="color:var(--green);font-size:15px;">${newRecs.length}</span></div>`;
 
   const colLabels = { date:'คอลัมน์วันที่', prov:'คอลัมน์จังหวัด', result:'คอลัมน์ผลการตรวจ', type:'คอลัมน์ประเภท' };
   document.getElementById('imp-cols').innerHTML = Object.entries(impDetectedCols).map(([k, v]) => `
@@ -997,15 +1023,13 @@ function showImpPreview(recs) {
       <div class="cd-val">${v ? '✓ ' + v : '<span style="color:var(--muted)">ไม่พบ</span>'}</div>
     </div>`).join('');
 
-  document.getElementById('btn-imp-ok').style.display = validRecs.length ? 'inline-block' : 'none';
-  if (!validRecs.length) toast('ไม่พบรายการที่ระบุปีงบประมาณได้', 'inf');
+  document.getElementById('btn-imp-ok').style.display = newRecs.length ? 'inline-block' : 'none';
+  if (!newRecs.length) toast('ไม่มีรายการใหม่ที่จะเพิ่ม (ทั้งหมดซ้ำหรือระบุปีไม่ได้)', 'inf');
 }
 
-function doImport() {
-  if (!impPreview || !impTarget) return;
+// รวม records ทั้งหมด (existing + ใหม่) แล้ว aggregate เป็นข้อมูลกราฟ
+function aggregateRecords(key, allRecs) {
   const cols = impDetectedCols;
-
-  // Initialize aggregation arrays
   const totals = Array(10).fill(0);
   const passed = Array(10).fill(0);
   const failed = Array(10).fill(0);
@@ -1013,7 +1037,7 @@ function doImport() {
   PROVS.forEach(p => { prov[p] = Array(10).fill(0); });
   const types = {};
 
-  impPreview.forEach(r => {
+  allRecs.forEach(r => {
     const yr = cols.date ? extractYear(r[cols.date]) : null;
     const yi = yr ? YEARS.indexOf(yr) : -1;
     if (yi === -1) return;
@@ -1022,14 +1046,12 @@ function doImport() {
     const pass = cols.result ? isPassResult(r[cols.result]) : true;
     if (pass) passed[yi]++; else failed[yi]++;
 
-    // Province match
     if (cols.prov) {
       const pv = String(r[cols.prov]).trim();
       const matchP = PROVS.find(p => pv.includes(p) || p.includes(pv));
       if (matchP) prov[matchP][yi]++;
     }
 
-    // Type
     if (cols.type) {
       const t = String(r[cols.type]).trim();
       if (t) {
@@ -1039,34 +1061,34 @@ function doImport() {
     }
   });
 
-  // Update CAT data
-  CAT[impTarget].totals = totals;
-  CAT[impTarget].passed = passed;
-  CAT[impTarget].failed = failed;
-  CAT[impTarget].prov = prov;
-  if (Object.keys(types).length > 0) CAT[impTarget].types = types;
+  CAT[key].totals = totals;
+  CAT[key].passed = passed;
+  CAT[key].failed = failed;
+  CAT[key].prov = prov;
+  if (Object.keys(types).length > 0) CAT[key].types = types;
+}
 
-  // Store raw records for table display
+function doImport() {
+  if (!impPreview || !impTarget) return;
+
+  // รวมกับ records ที่มีอยู่แล้ว (additive — ไม่ replace)
   if (!window.importDB) window.importDB = {};
-  window.importDB[impTarget] = impPreview;
+  const existing = window.importDB[impTarget] || [];
+  const merged = [...existing, ...impPreview];
+  window.importDB[impTarget] = merged;
 
-  // Rebuild section (reset built flag so it rebuilds)
+  // Aggregate ทั้งหมด (existing + ใหม่) ให้กราฟถูกต้อง
+  aggregateRecords(impTarget, merged);
+
+  // Rebuild section
   const container = document.getElementById('cat-' + impTarget + '-content');
   if (container) { container.dataset.built = ''; container.innerHTML = ''; }
-
-  // Rebuild overview KPIs if visible
   buildOverview();
-
-  // Rebuild the category if currently active
   if (currentTab === impTarget) buildCat(impTarget);
 
-  const added = impPreview.filter(r => {
-    const yr = cols.date ? extractYear(r[cols.date]) : null;
-    return yr && YEARS.includes(yr);
-  }).length;
-
+  const added = impPreview.length;
   closeImp();
-  toast(`นำเข้าสำเร็จ ${added} รายการ — อัปเดต ${CAT[impTarget].label} แล้ว`, 'ok');
+  toast(`เพิ่มสำเร็จ ${added} รายการใหม่ (รวมสะสม ${merged.length} รายการ) — อัปเดต ${CAT[impTarget].label} แล้ว`, 'ok');
 }
 
 // TOAST helper
