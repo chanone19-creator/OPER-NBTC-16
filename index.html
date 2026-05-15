@@ -508,11 +508,26 @@ function saveDataCloud() {
   const snap = getCatSnapshot();
   try { localStorage.setItem('nbtc16-catdata', JSON.stringify(snap)); } catch(e){}
   try { localStorage.setItem('nbtc16-importDB', JSON.stringify(window.importDB||{})); } catch(e){}
+  try { localStorage.setItem('nbtc16-colsPerKey', JSON.stringify(colsPerKey||{})); } catch(e){}
   if (!fbDB) return;
   setSyncStatus('saving');
   fbDB.ref(FB_PATH).set(snap)
     .then(() => { setSyncStatus('idle'); toast('☁️ Cloud sync สำเร็จ', 'ok'); })
     .catch(e => { setSyncStatus('error'); toast('⚠️ Cloud sync ล้มเหลว: ' + e.message, 'er'); });
+}
+
+// ─── Re-aggregate from stored importDB (รับประกันข้อมูลถูกต้องแม้ snapshot มีปัญหา) ────
+function reAggregateFromImportDB() {
+  if (!window.importDB) return;
+  Object.entries(window.importDB).forEach(([key, recs]) => {
+    if (!CAT[key] || !recs || recs.length === 0) return;
+    const cols = colsPerKey[key];
+    if (!cols) return;
+    const prevCols = impDetectedCols;
+    impDetectedCols = cols;
+    aggregateRecords(key, recs);
+    impDetectedCols = prevCols;
+  });
 }
 
 // ─── Load ──────────────────────────────────────────────────────
@@ -522,6 +537,10 @@ function loadDataCloud(onDone) {
   try { const raw = localStorage.getItem('nbtc16-catdata'); if(raw) localSnap = JSON.parse(raw); } catch(e){}
   if (localSnap && applyCatSnapshot(localSnap)) {
     try { const imp = localStorage.getItem('nbtc16-importDB'); if(imp) window.importDB=JSON.parse(imp); } catch(e){}
+    try { const cpk = localStorage.getItem('nbtc16-colsPerKey'); if(cpk) colsPerKey=JSON.parse(cpk); } catch(e){}
+    // Re-aggregate จาก raw records เสมอ — รับประกัน 100% ว่าข้อมูลถูกต้องหลัง reload
+    reAggregateFromImportDB();
+    setSyncStatus(fbDB ? 'loading' : 'noconf');
     onDone();
     // background: ถ้า Firebase มีข้อมูลใหม่กว่า ให้ update
     if (fbDB) {
@@ -565,6 +584,8 @@ function clearDataCloud() {
   if (!confirm('ลบข้อมูล import ทั้งหมดออกจาก Cloud และ Local?\nกราฟจะกลับสู่ข้อมูลต้นฉบับ')) return;
   localStorage.removeItem('nbtc16-catdata');
   localStorage.removeItem('nbtc16-importDB');
+  localStorage.removeItem('nbtc16-colsPerKey');
+  colsPerKey = {};
   if (fbDB) fbDB.ref(FB_PATH).remove().catch(()=>{});
   location.reload();
 }
@@ -1322,6 +1343,7 @@ function exportAllCSV(){
 // EXCEL IMPORT
 // ============================================================
 let impTarget = null, impPreview = null, impDetectedCols = null;
+let colsPerKey = {}; // บันทึก detected cols ต่อ category เพื่อ re-aggregate ตอน reload
 
 function openImpForCurrent() {
   const key = currentTab === 'ov' ? Object.keys(CAT)[0] : currentTab;
@@ -1564,6 +1586,9 @@ function aggregateRecords(key, allRecs) {
 
 function doImport() {
   if (!impPreview || !impTarget) return;
+
+  // บันทึก detected cols ของ category นี้ — ใช้ตอน reload เพื่อ re-aggregate
+  colsPerKey[impTarget] = impDetectedCols;
 
   // รวมกับ records ที่มีอยู่แล้ว (additive — ไม่ replace)
   if (!window.importDB) window.importDB = {};
