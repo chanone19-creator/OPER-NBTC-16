@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard ผลการตรวจสอบ | กสทช. เขต ๑๖</title>
+<title>Dashboard ผลการตรวจสอบ | NBTC 16</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -50,11 +50,11 @@ body.dark .dz:hover,body.dark .dz.dg{background:#162032;border-color:var(--blue)
 /* smooth transition */
 body,body *{transition:background-color .2s,border-color .2s,color .2s;}
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,sans-serif;}
-body{background:var(--bg);color:var(--text);font-size:14px;display:flex;flex-direction:column;min-height:100vh;}
+body{background:var(--bg);color:var(--text);font-size:14px;display:flex;flex-direction:column;min-height:100vh;line-height:1.5;}
 /* HEADER */
 .hdr{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;padding:0 24px;display:flex;align-items:center;gap:16px;height:58px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.25);}
-.hdr-logo{width:38px;height:38px;background:linear-gradient(135deg,var(--blue),var(--teal));border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;letter-spacing:-1px;flex-shrink:0;}
-.hdr h1{font-size:16px;font-weight:700;flex:1;}
+.hdr-logo{width:52px;height:38px;background:linear-gradient(135deg,var(--blue),var(--teal));border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:10px;letter-spacing:0;flex-shrink:0;flex-direction:column;line-height:1.2;}
+.hdr h1{font-size:15px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .hdr-badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;}
 .hdr-sub{font-size:11px;opacity:.6;}
 /* LAYOUT */
@@ -89,7 +89,7 @@ body{background:var(--bg);color:var(--text);font-size:14px;display:flex;flex-dir
 .kpi-row{display:flex;gap:12px;flex-wrap:wrap;}
 .kpi{background:var(--white);border-radius:var(--r);padding:16px 18px;flex:1;min-width:140px;box-shadow:var(--shadow);border:1px solid var(--border);position:relative;overflow:hidden;}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kpi-color,var(--blue));}
-.kpi-num{font-size:28px;font-weight:800;color:var(--navy);line-height:1.1;}
+.kpi-num{font-size:26px;font-weight:800;color:var(--navy);line-height:1.1;}
 .kpi-label{font-size:11px;color:var(--muted);margin-top:4px;}
 .kpi-delta{font-size:11px;font-weight:700;margin-top:6px;}
 .kpi-delta.up{color:var(--green);}
@@ -101,11 +101,13 @@ body{background:var(--bg);color:var(--text);font-size:14px;display:flex;flex-dir
 .full{grid-column:1/-1;}
 /* CARD */
 .card{background:var(--white);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);border:1px solid var(--border);}
-.card-title{font-size:12px;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.card-title{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
 .card-title .ct-badge{background:var(--blue);color:#fff;font-size:10px;padding:2px 7px;border-radius:12px;}
 .chart-wrap{position:relative;}
 .chart-wrap canvas{max-height:240px;}
-.chart-wrap.tall canvas{max-height:300px;}
+.chart-wrap.tall canvas{max-height:320px;}
+.chart-wrap.auto{height:auto;}
+.chart-wrap.auto canvas{max-height:none;}
 /* STAT ANALYSIS */
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
 .stat-item{background:var(--light);border-radius:8px;padding:12px;text-align:center;border:1px solid var(--border);}
@@ -154,8 +156,8 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:t
 /* SECTION HEADER */
 .sec-hdr{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
 .sec-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
-.sec-hdr h2{font-size:16px;font-weight:700;color:var(--navy);}
-.sec-hdr p{font-size:11px;color:var(--muted);}
+.sec-hdr h2{font-size:15px;font-weight:700;color:var(--navy);}
+.sec-hdr p{font-size:12px;color:var(--muted);}
 /* PAGER */
 .pager{display:flex;gap:6px;justify-content:flex-end;margin-top:8px;}
 .pager button{border:1px solid var(--border);background:#fff;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;}
@@ -229,10 +231,10 @@ body.dark .clear-cloud-btn:hover{background:#450A0A;}
 
 <!-- HEADER -->
 <div class="hdr">
-  <div class="hdr-logo">NT16</div>
-  <h1>Dashboard ผลการตรวจสอบ กสทช. เขต ๑๖</h1>
-  <div class="hdr-badge">ปี ๒๕๖๐–๒๕๖๙</div>
-  <div class="hdr-sub">ข้อมูลสะสม ๑๐ ปีงบประมาณ</div>
+  <div class="hdr-logo"><span>NBTC</span><span>16</span></div>
+  <h1>Dashboard ผลการตรวจสอบ NBTC 16</h1>
+  <div class="hdr-badge">ปี 2560–2569</div>
+  <div class="hdr-sub">ข้อมูลสะสม 10 ปีงบประมาณ</div>
   <button class="dark-toggle" id="darkToggle" onclick="toggleDark()">
     <span id="darkIcon">🌙</span><span id="darkLabel">มืด</span>
   </button>
@@ -288,28 +290,41 @@ body.dark .clear-cloud-btn:hover{background:#450A0A;}
 <div class="section active" id="sec-ov">
   <div class="sec-hdr">
     <div class="sec-icon" style="background:#EFF6FF;">📊</div>
-    <div><h2>ภาพรวมผลการตรวจสอบ กสทช. เขต ๑๖</h2><p>ข้อมูลสะสม ปีงบประมาณ ๒๕๖๐–๒๕๖๙ | ๕ จังหวัด (ราชบุรี นครปฐม เพชรบุรี สมุทรสาคร สมุทรสงคราม)</p></div>
+    <div><h2>ภาพรวมผลการตรวจสอบ NBTC 16</h2><p>ข้อมูลสะสม ปีงบประมาณ 2560–2569 | 5 จังหวัด (ราชบุรี นครปฐม เพชรบุรี สมุทรสาคร สมุทรสงคราม)</p></div>
   </div>
 
   <div class="kpi-row" id="ov-kpis"></div>
 
   <div class="grid2" style="margin-top:14px;">
     <div class="card full">
-      <div class="card-title">📈 แนวโน้มการตรวจสอบรายปี (ทุกหมวด พ.ศ. ๒๕๖๐–๒๕๖๙)</div>
+      <div class="card-title">📈 แนวโน้มการตรวจสอบรายปี</div>
+      <div class="fbar" style="margin-bottom:10px;padding:8px 12px;gap:8px;">
+        <div class="fg"><label>หมวด</label>
+          <select id="ov-cat-sel" onchange="updateOvTrend()">
+            <option value="all">ทุกหมวด</option>
+          </select>
+        </div>
+        <div class="fg"><label>จากปี</label>
+          <select id="ov-yr-from" onchange="updateOvTrend()"></select>
+        </div>
+        <div class="fg"><label>ถึงปี</label>
+          <select id="ov-yr-to" onchange="updateOvTrend()"></select>
+        </div>
+      </div>
       <div class="chart-wrap tall"><canvas id="ch-ov-trend"></canvas></div>
     </div>
     <div class="card">
-      <div class="card-title">🗂 สัดส่วนตามหมวดการตรวจสอบ (ตลอด ๑๐ ปี)</div>
+      <div class="card-title">🗂 สัดส่วนตามหมวดการตรวจสอบ</div>
       <div class="chart-wrap"><canvas id="ch-ov-cat"></canvas></div>
     </div>
     <div class="card">
-      <div class="card-title">🗺 สัดส่วนตามจังหวัด (ตลอด ๑๐ ปี)</div>
+      <div class="card-title">🗺 สัดส่วนตามจังหวัด</div>
       <div class="chart-wrap"><canvas id="ch-ov-prov"></canvas></div>
     </div>
   </div>
 
   <div class="forecast-card" style="margin-top:14px;">
-    <div class="fc-title">🔮 การพยากรณ์ปีงบประมาณ ๒๕๗๐ (Linear Regression)</div>
+    <div class="fc-title">🔮 การพยากรณ์ปีงบประมาณ 2570 (Linear Regression)</div>
     <div class="forecast-grid" id="ov-forecast"></div>
   </div>
 </div>
@@ -318,7 +333,7 @@ body.dark .clear-cloud-btn:hover{background:#450A0A;}
 <div class="section" id="sec-radio">
   <div class="sec-hdr">
     <div class="sec-icon" style="background:#EFF6FF;">📡</div>
-    <div><h2>การตรวจสอบเครื่องวิทยุคมนาคม</h2><p>ตรวจสอบเครื่องและสถานีวิทยุคมนาคมตามพ.ร.บ. วิทยุคมนาคม พ.ศ. ๒๔๙๘</p></div>
+    <div><h2>การตรวจสอบเครื่องวิทยุคมนาคม</h2><p>ตรวจสอบเครื่องและสถานีวิทยุคมนาคมตามพ.ร.บ. วิทยุคมนาคม พ.ศ. 2498</p></div>
   </div>
   <div id="cat-radio-content"></div>
 </div>
@@ -474,8 +489,15 @@ function applyCatSnapshot(snap) {
     if (data.totals) CAT[k].totals = [...data.totals];
     if (data.passed) CAT[k].passed = [...data.passed];
     if (data.failed) CAT[k].failed = [...data.failed];
-    if (data.prov)  Object.entries(data.prov).forEach(([p,v])=>{ if(p in CAT[k].prov) CAT[k].prov[p]=[...v]; });
-    if (data.types) Object.entries(data.types).forEach(([t,v])=>{ if(t in CAT[k].types) CAT[k].types[t]=[...v]; });
+    if (data.prov) {
+      // Restore all provinces (including any new ones)
+      Object.entries(data.prov).forEach(([p,v])=>{ CAT[k].prov[p]=[...v]; });
+    }
+    if (data.types) {
+      // Restore ALL types from snapshot — replace entirely so imported types are not lost
+      CAT[k].types = {};
+      Object.entries(data.types).forEach(([t,v])=>{ CAT[k].types[t]=[...v]; });
+    }
     delete CAT[k].monthly; delete CAT[k].monthlyPassed;
   });
   return true;
@@ -583,8 +605,8 @@ const CAT = {
        detail:'มีการเพิ่มเสาอากาศ เพิ่มกำลังส่ง หรือขยายพื้นที่ให้บริการโดยไม่แจ้งขอแก้ไขใบอนุญาต เนื่องจากมองว่าเป็นการปรับปรุงภายใน'},
     ],
     insights:[
-      'ปี ๒๕๖๓–๒๕๖๔ จำนวนการตรวจสอบลดลงชัดเจน เนื่องจากข้อจำกัดการเดินทางในช่วง COVID-19',
-      'แนวโน้มการตรวจสอบเพิ่มขึ้นต่อเนื่องหลังปี ๒๕๖๔ สะท้อนการฟื้นตัวและการเพิ่มประสิทธิภาพ',
+      'ปี 2563–2564 จำนวนการตรวจสอบลดลงชัดเจน เนื่องจากข้อจำกัดการเดินทางในช่วง COVID-19',
+      'แนวโน้มการตรวจสอบเพิ่มขึ้นต่อเนื่องหลังปี 2564 สะท้อนการฟื้นตัวและการเพิ่มประสิทธิภาพ',
       'จ.ราชบุรี มีจำนวนการตรวจสอบสูงสุดทุกปี เนื่องจากมีผู้ถือใบอนุญาตมากที่สุดในเขต',
       'สถานีเคลื่อนที่มีสัดส่วนการไม่ผ่านสูงกว่าสถานีประจำที่ เพราะขาดการบำรุงรักษาสม่ำเสมอ',
     ]
@@ -620,8 +642,8 @@ const CAT = {
     insights:[
       'กรณีรบกวนคลื่นเพิ่มขึ้นต่อเนื่อง สาเหตุหลักคือจำนวนสถานีวิทยุที่เพิ่มขึ้น ทำให้ความหนาแน่นสูงขึ้น',
       'Co-channel interference พบมากในพื้นที่ติดต่อระหว่างจังหวัด โดยเฉพาะ ราชบุรี-เพชรบุรี',
-      'ช่วง COVID ปี ๒๕๖๓ กรณีรบกวนลดลง เนื่องจากสถานีวิทยุชุมชนบางส่วนหยุดดำเนินการ',
-      'IMD3 เพิ่มขึ้นใน ปี ๒๕๖๕–๒๕๖๘ สอดคล้องกับการขยายสถานีฐาน 5G ในพื้นที่',
+      'ช่วง COVID ปี 2563 กรณีรบกวนลดลง เนื่องจากสถานีวิทยุชุมชนบางส่วนหยุดดำเนินการ',
+      'IMD3 เพิ่มขึ้นใน ปี 2565–2568 สอดคล้องกับการขยายสถานีฐาน 5G ในพื้นที่',
     ]
   },
   freq: {
@@ -656,7 +678,7 @@ const CAT = {
       'FM Broadcasting คิดเป็นสัดส่วนสูงสุดของการตรวจสอบ สะท้อนจำนวนสถานีที่ได้รับใบอนุญาตชั่วคราวจำนวนมาก',
       '"ไม่พบการประกอบกิจการ" เป็นปัญหาเรื้อรัง ต้องพัฒนาระบบติดตามเชิงรุก',
       'Mobile/สื่อสารเพิ่มขึ้นต่อเนื่อง สอดคล้องกับการขยายเครือข่าย 4G/5G ในพื้นที่',
-      'ปี ๒๕๖๗–๒๕๖๘ อัตราผ่านมาตรฐานดีขึ้น เนื่องจากผู้ประกอบการปรับปรุงอุปกรณ์',
+      'ปี 2567–2568 อัตราผ่านมาตรฐานดีขึ้น เนื่องจากผู้ประกอบการปรับปรุงอุปกรณ์',
     ]
   },
   broadcast: {
@@ -689,8 +711,8 @@ const CAT = {
     ],
     insights:[
       'FM วิทยุชุมชนมีสัดส่วนสูงสุดและมีปัญหาด้านเทคนิคมากกว่าประเภทอื่น เนื่องจากขาดช่างเทคนิคประจำ',
-      'ปี ๒๕๖๓ การตรวจสอบลดลงมากที่สุด (-31%) เทียบกับปี ๒๕๖๒ เนื่องจาก COVID-19',
-      'หลังปี ๒๕๖๕ อัตราผ่านมาตรฐานเพิ่มขึ้น เนื่องจากโครงการอบรม "ช่างวิทยุชุมชน" ของ กสทช.',
+      'ปี 2563 การตรวจสอบลดลงมากที่สุด (-31%) เทียบกับปี 2562 เนื่องจาก COVID-19',
+      'หลังปี 2565 อัตราผ่านมาตรฐานเพิ่มขึ้น เนื่องจากโครงการอบรม "ช่างวิทยุชุมชน" ของ กสทช.',
       'จ.ราชบุรีมีจำนวนสถานีมากที่สุดและครองสัดส่วน 33-35% ของเขตทุกปี',
     ]
   },
@@ -719,14 +741,14 @@ const CAT = {
       {name:'นำเข้าสินค้าผิดกฎหมาย/ไม่แจ้งพิกัด',pct:30,color:'#DC2626',
        detail:'สินค้าลักลอบนำเข้าโดยไม่ผ่านกระบวนการตรวจสอบมาตรฐาน ไม่มีการแจ้งพิกัดอัตราศุลกากรที่ถูกต้อง พบมากตามแนวชายแดนและท่าเรือ'},
       {name:'ไม่มีใบอนุญาตค้าขายวิทยุคมนาคม',pct:20,color:'#D97706',
-       detail:'ผู้ค้าบางรายไม่ทราบว่าการจำหน่ายเครื่องวิทยุคมนาคมต้องมีใบอนุญาตจาก กสทช. ตาม พ.ร.บ.วิทยุคมนาคม พ.ศ. ๒๔๙๘'},
+       detail:'ผู้ค้าบางรายไม่ทราบว่าการจำหน่ายเครื่องวิทยุคมนาคมต้องมีใบอนุญาตจาก กสทช. ตาม พ.ร.บ.วิทยุคมนาคม พ.ศ. 2498'},
       {name:'ฉลาก/เอกสารกำกับสินค้าไม่ถูกต้อง',pct:15,color:'#7C3AED',
        detail:'สินค้ามีเครื่องหมาย กสทช. แต่ฉลากภาษาไทยไม่ครบถ้วน ข้อมูลเทคนิคไม่ตรงกับเครื่องจริง หรือเลขทะเบียนปลอมแปลง'},
     ],
     insights:[
-      'จำนวนการตรวจสอบเพิ่มขึ้นชัดเจนหลังปี ๒๕๖๕ สอดคล้องกับนโยบายเพิ่มความเข้มงวดการตรวจตลาด',
+      'จำนวนการตรวจสอบเพิ่มขึ้นชัดเจนหลังปี 2565 สอดคล้องกับนโยบายเพิ่มความเข้มงวดการตรวจตลาด',
       'วิทยุสื่อสารครองสัดส่วน 40-45% ของสินค้าไม่ผ่าน เพราะเป็นที่ต้องการของภาคเกษตรและความปลอดภัย',
-      'ปัญหาการขายออนไลน์ทวีความรุนแรงหลังปี ๒๕๖๔ ยาก Track กว่าร้านค้าปกติ',
+      'ปัญหาการขายออนไลน์ทวีความรุนแรงหลังปี 2564 ยาก Track กว่าร้านค้าปกติ',
       'พื้นที่ตรวจสอบควรเน้น จ.ราชบุรี ซึ่งมีแหล่งจำหน่ายอุปกรณ์วิทยุสูงสุดในเขต',
     ]
   },
@@ -760,7 +782,7 @@ const CAT = {
        detail:'การตรวจสอบเกิดจากการร้องเรียนของประชาชนที่วิตกกังวลด้านสุขภาพ สะท้อนการขาดความรู้ความเข้าใจของประชาชนในการตีความมาตรฐาน EMF'},
     ],
     insights:[
-      'การตรวจวัด EMF เพิ่มขึ้นอย่างมีนัยสำคัญหลังปี ๒๕๖๓ ตามการขยายตัวของโครงข่าย 5G',
+      'การตรวจวัด EMF เพิ่มขึ้นอย่างมีนัยสำคัญหลังปี 2563 ตามการขยายตัวของโครงข่าย 5G',
       'สถานีฐานโทรศัพท์มือถือมีสัดส่วนเพิ่มจาก 39% (2560) เป็น 55% (2568) ของการตรวจวัดทั้งหมด',
       'อัตราพบค่าเกินมาตรฐานอยู่ที่ 10-13% ต่ำกว่าหมวดอื่น สะท้อนความเข้มงวดของผู้ประกอบการโทรคมนาคม',
       'ควรพัฒนาโปรแกรมสื่อสารสาธารณะเพื่อลดการร้องเรียนที่มาจากความกังวลโดยไม่มีมูล',
@@ -842,31 +864,44 @@ function buildOverview(){
       ${k.delta?`<div class="kpi-delta up">✔ ${k.delta} อัตราผ่าน</div>`:''}
     </div>`).join('');
 
-  // Trend chart (all cats) — distinct colors + dash patterns per line
-  const TREND_CLR=['#2563EB','#DC2626','#16A34A','#D97706','#9333EA','#EC4899'];
-  const TREND_DASH=[[],[5,5],[10,4],[5,5,1,5],[2,2],[12,3,3,3]];
-  const datasets=Object.values(CAT).map((c,i)=>({
-    label:c.label, data:c.totals, borderColor:TREND_CLR[i], backgroundColor:TREND_CLR[i]+'22',
-    borderDash:TREND_DASH[i], borderWidth:2.5,
-    tension:.35, fill:false, pointRadius:4, pointHoverRadius:6,
-  }));
-  makeChart('ch-ov-trend','line',{labels:YEARS.map(y=>`พ.ศ. ${y}`),datasets},{
-    responsive:true,maintainAspectRatio:true,
-    plugins:{legend:{labels:{font:{size:11}},tooltip:{mode:'index',intersect:false}},datalabels:{display:false}},
-    scales:{y:{beginAtZero:true,ticks:{font:{size:10}}},x:{ticks:{font:{size:10}}}}
-  });
+  // Populate trend filter dropdowns
+  const catSel = document.getElementById('ov-cat-sel');
+  if (catSel) {
+    catSel.innerHTML = '<option value="all">ทุกหมวด</option>';
+    Object.entries(CAT).forEach(([k,c]) => {
+      const opt = new Option(c.label, k);
+      catSel.appendChild(opt);
+    });
+  }
+  const yrFrom = document.getElementById('ov-yr-from');
+  const yrTo   = document.getElementById('ov-yr-to');
+  if (yrFrom && yrTo) {
+    const prevFrom = +yrFrom.value || 0;
+    const prevTo   = +yrTo.value   || 0;
+    [yrFrom, yrTo].forEach(sel => { sel.innerHTML = ''; });
+    YEARS.forEach(y => {
+      yrFrom.appendChild(new Option(`พ.ศ. ${y}`, y));
+      yrTo.appendChild(new Option(`พ.ศ. ${y}`, y));
+    });
+    yrFrom.value = YEARS.includes(prevFrom) ? prevFrom : YEARS[0];
+    yrTo.value   = YEARS.includes(prevTo)   ? prevTo   : YEARS[YEARS.length-1];
+  }
 
-  // Category pie
+  // Trend chart via filter function
+  updateOvTrend();
+
+  // Category doughnut
   makeChart('ch-ov-cat','doughnut',{
     labels:Object.values(CAT).map(c=>c.label),
-    datasets:[{data:totals,backgroundColor:PALETTE.slice(0,6),borderWidth:2}]
+    datasets:[{data:totals,backgroundColor:PALETTE.slice(0,6),borderWidth:2,borderColor:'#fff',hoverOffset:8}]
   },{plugins:{
-    legend:{position:'bottom',labels:{font:{size:10}}},
+    legend:{position:'bottom',labels:{font:{size:10},padding:8}},
     datalabels:{
       display:true,color:'#fff',font:{weight:'bold',size:11},
       formatter:(v,ctx)=>{
         const s=ctx.dataset.data.reduce((a,b)=>a+b,0);
-        return `${v}\n(${Math.round(v/s*100)}%)`;
+        const pct=Math.round(v/s*100);
+        return pct>=6?`${pct}%`:'';
       }
     }
   }});
@@ -875,7 +910,7 @@ function buildOverview(){
   const provTotals=PROVS.map(p=>Object.values(CAT).reduce((s,c)=>s+(c.prov[p]||[]).reduce((a,b)=>a+b,0),0));
   makeChart('ch-ov-prov','bar',{
     labels:PROVS,
-    datasets:[{label:'รวมทุกประเภท',data:provTotals,backgroundColor:PALETTE}]
+    datasets:[{label:'รวมทุกประเภท',data:provTotals,backgroundColor:PALETTE,borderRadius:6}]
   },{
     plugins:{
       legend:{display:false},
@@ -898,6 +933,42 @@ function buildOverview(){
       <div class="fc-trend" style="color:${slope>0?'#6EE7B7':'#FCA5A5'}">${slope>0?'▲':'▼'} ${Math.abs(slope).toFixed(1)}/ปี</div>
     </div>`;
   }).join('');
+}
+
+function updateOvTrend() {
+  const catSel  = document.getElementById('ov-cat-sel');
+  const yrFrom  = document.getElementById('ov-yr-from');
+  const yrTo    = document.getElementById('ov-yr-to');
+  const selCat  = catSel?.value  || 'all';
+  const fromYr  = +(yrFrom?.value || YEARS[0]);
+  const toYr    = +(yrTo?.value   || YEARS[YEARS.length-1]);
+  const filtIdx = YEARS.reduce((acc,y,i)=>{ if(y>=fromYr && y<=toYr) acc.push(i); return acc; },[]);
+  const filtYears = filtIdx.map(i=>YEARS[i]);
+  const TREND_CLR=['#2563EB','#DC2626','#16A34A','#D97706','#9333EA','#EC4899'];
+  const TREND_DASH=[[],[5,5],[10,4],[5,5,1,5],[2,2],[12,3,3,3]];
+  let datasets;
+  if (selCat === 'all') {
+    datasets = Object.values(CAT).map((c,i)=>({
+      label:c.label, data:filtIdx.map(j=>c.totals[j]),
+      borderColor:TREND_CLR[i], backgroundColor:TREND_CLR[i]+'22',
+      borderDash:TREND_DASH[i], borderWidth:2.5,
+      tension:.35, fill:false, pointRadius:4, pointHoverRadius:6,
+    }));
+  } else {
+    const c=CAT[selCat]; const ci=Object.keys(CAT).indexOf(selCat);
+    const clr=TREND_CLR[ci]||c.color;
+    datasets=[{
+      label:c.label, data:filtIdx.map(j=>c.totals[j]),
+      borderColor:clr, backgroundColor:clr+'33',
+      borderWidth:2.5, tension:.35, fill:true, pointRadius:4, pointHoverRadius:6,
+    }];
+  }
+  makeChart('ch-ov-trend','line',
+    {labels:filtYears.map(y=>`พ.ศ. ${y}`), datasets},
+    {responsive:true,maintainAspectRatio:true,
+     plugins:{legend:{labels:{font:{size:11}}},tooltip:{mode:'index',intersect:false},datalabels:{display:false}},
+     scales:{y:{beginAtZero:true,ticks:{font:{size:10}}},x:{ticks:{font:{size:10}}}}
+    });
 }
 
 // ============================================================
@@ -951,11 +1022,11 @@ function buildCat(key){
 
     <div class="card">
       <div class="card-title">🗂 สัดส่วนตามประเภท</div>
-      <div class="chart-wrap"><canvas id="ch-${key}-type"></canvas></div>
+      <div class="chart-wrap tall"><canvas id="ch-${key}-type"></canvas></div>
     </div>
 
     <div class="card">
-      <div class="card-title">🗺 จำนวนตามจังหวัด (ตลอด ${YEARS.length} ปี)</div>
+      <div class="card-title">🗺 จำนวนตามจังหวัด</div>
       <div id="prov-bars-${key}"></div>
     </div>
   </div>
@@ -981,12 +1052,12 @@ function buildCat(key){
     <div class="card-title">📋 ตารางสรุป</div>
     <div class="fbar" style="margin-bottom:10px;">
       <div class="fg"><label>ปีงบประมาณ</label>
-        <select id="f-${key}-yr" onchange="onYearChange('${key}')">
+        <select id="f-${key}-yr" onchange="renderYrTable('${key}')">
           <option value="">ทั้งหมด</option>
-          ${YEARS.map(y=>`<option value="${y}">${y}</option>`).join('')}
+          ${YEARS.map(y=>`<option value="${y}">พ.ศ. ${y}</option>`).join('')}
         </select>
       </div>
-      <div class="fg" id="fg-mo-${key}" style="display:none;">
+      <div class="fg">
         <label>เดือน</label>
         <select id="f-${key}-mo" onchange="renderYrTable('${key}')">
           <option value="">ทุกเดือน</option>
@@ -1018,24 +1089,33 @@ function buildCat(key){
        plugins:{legend:{labels:{font:{size:10}}}},
        scales:{y:{beginAtZero:true,ticks:{font:{size:10}}},x:{ticks:{font:{size:10}}}}});
 
-    // Type bar
+    // Type chart — horizontal bar showing total per type across all years
     const typeKeys=Object.keys(c.types);
-    const typeData={
-      labels:YEARS.map(y=>`${y}`),
-      datasets:typeKeys.map((k,i)=>({label:k,data:c.types[k],backgroundColor:PALETTE[i%PALETTE.length]+'BB',stack:'s'}))
-    };
-    makeChart(`ch-${key}-type`,'bar',typeData,
-      {responsive:true,maintainAspectRatio:true,
+    const typeTotals=typeKeys.map(tk=>c.types[tk].reduce((a,b)=>a+b,0));
+    const typeGrand=typeTotals.reduce((a,b)=>a+b,0);
+    makeChart(`ch-${key}-type`,'bar',
+      {labels:typeKeys,datasets:[{
+        data:typeTotals,
+        backgroundColor:PALETTE.slice(0,typeKeys.length),
+        borderRadius:6,borderSkipped:false
+      }]},
+      {indexAxis:'y',responsive:true,maintainAspectRatio:false,
        plugins:{
-         legend:{position:'bottom',labels:{font:{size:9}}},
+         legend:{display:false},
          datalabels:{
-           display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0,
-           anchor:'center',align:'center',
-           color:'#fff',font:{size:9,weight:'bold'},
-           formatter:v=>v||''
+           display:true,anchor:'end',align:'right',
+           color:'var(--navy)',font:{size:11,weight:'bold'},
+           formatter:(v)=>`${v} (${typeGrand>0?Math.round(v/typeGrand*100):0}%)`
          }
        },
-       scales:{x:{stacked:true,ticks:{font:{size:9}}},y:{stacked:true,beginAtZero:true}}});
+       scales:{
+         x:{beginAtZero:true,ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,.05)'}},
+         y:{ticks:{font:{size:11}}}
+       }
+      });
+    // ปรับความสูงของ canvas ให้พอดีกับจำนวน type
+    const typeCanvas=document.getElementById(`ch-${key}-type`);
+    if(typeCanvas){typeCanvas.parentElement.style.height=(Math.max(160,typeKeys.length*52))+'px';}
 
     // YoY bar
     const yoyColors=yoyArr.map(v=>v===null?'#CBD5E1':v>=0?'#059669CC':'#DC2626CC');
@@ -1071,19 +1151,6 @@ function buildCat(key){
   },50);
 }
 
-function onYearChange(key) {
-  const yr = document.getElementById(`f-${key}-yr`).value;
-  const moGroup = document.getElementById(`fg-mo-${key}`);
-  const moSel   = document.getElementById(`f-${key}-mo`);
-  if (yr) {
-    moGroup.style.display = '';
-  } else {
-    moGroup.style.display = 'none';
-    if (moSel) moSel.value = '';
-  }
-  renderYrTable(key);
-}
-
 function renderYrTable(key) {
   const c = CAT[key];
   ensureMonthly(key);
@@ -1093,22 +1160,47 @@ function renderYrTable(key) {
   const tbody = document.getElementById(`tbody-${key}`);
   const badge = document.getElementById(`tbl-mode-badge-${key}`);
 
-  // ── โหมดรายปี (ไม่ได้เลือกปี) ─────────────────────────────
+  // ── โหมด: ทั้งหมด (ไม่ได้เลือกปี) ────────────────────────
   if (!yr) {
-    if (badge) badge.textContent = `แสดง ${YEARS.length} ปี`;
-    if (thead) thead.innerHTML = `<tr><th>ปีงบประมาณ</th><th>รวม</th><th>ผ่าน</th><th>ไม่ผ่าน</th><th>อัตราผ่าน</th><th>YoY</th>${PROVS.map(p=>`<th>${p}</th>`).join('')}</tr>`;
-    const yoys = yoyArr2(c.totals);
-    const rows = YEARS.map((y,i) => {
-      const t=c.totals[i], p=c.passed[i], f=c.failed[i];
-      const rate = t>0 ? Math.round(p/t*100) : 0;
-      const yoyV = yoys[i];
-      const yoyStr = yoyV===null?'-':(yoyV>=0?`<span class="trend-up">▲ ${yoyV}%</span>`:`<span class="trend-dn">▼ ${Math.abs(yoyV)}%</span>`);
-      const provCells = PROVS.map(pr=>`<td>${(c.prov[pr]||[])[i]||0}</td>`).join('');
-      return `<tr><td><b>พ.ศ. ${y}</b></td><td>${t}</td><td>${p}</td><td>${f}</td>
-        <td><span class="badge ${rate>=80?'b-green':rate>=60?'b-amber':'b-red'}">${rate}%</span></td>
-        <td>${yoyStr}</td>${provCells}</tr>`;
-    }).join('');
-    tbody.innerHTML = rows || `<tr><td colspan="100" style="text-align:center;padding:20px;color:var(--muted);">ไม่พบข้อมูล</td></tr>`;
+    if (mo !== '') {
+      // กรองเดือน: แสดงข้อมูลของเดือนที่เลือกในแต่ละปี
+      if (badge) badge.textContent = `ทุกปี — ${MONTHS_TH[+mo]}`;
+      if (thead) thead.innerHTML = `<tr><th>ปีงบประมาณ</th><th>รวม</th><th>ผ่าน</th><th>ไม่ผ่าน</th><th>อัตราผ่าน</th><th>% ของปี</th></tr>`;
+      let rows = YEARS.map((y,i) => {
+        const mData = c.monthly[i]||Array(12).fill(0);
+        const mPass = c.monthlyPassed[i]||Array(12).fill(0);
+        const t=mData[+mo], p=mPass[+mo], f=t-p;
+        const rate=t>0?Math.round(p/t*100):0;
+        const pctYear=c.totals[i]>0?(t/c.totals[i]*100).toFixed(1):'0.0';
+        return `<tr><td><b>พ.ศ. ${y}</b></td><td>${t}</td><td>${p}</td><td>${f}</td>
+          <td><span class="badge ${rate>=80?'b-green':rate>=60?'b-amber':'b-red'}">${t>0?rate+'%':'—'}</span></td>
+          <td>${pctYear}%</td></tr>`;
+      }).join('');
+      const tSum=c.monthly.reduce((s,m)=>s+(m[+mo]||0),0);
+      const pSum=c.monthlyPassed.reduce((s,m)=>s+(m[+mo]||0),0);
+      const fSum=tSum-pSum, rSum=tSum>0?Math.round(pSum/tSum*100):0;
+      rows += `<tr style="font-weight:700;background:var(--light);">
+        <td>รวมทุกปี</td><td>${tSum}</td><td>${pSum}</td><td>${fSum}</td>
+        <td><span class="badge ${rSum>=80?'b-green':rSum>=60?'b-amber':'b-red'}">${rSum}%</span></td>
+        <td>—</td></tr>`;
+      tbody.innerHTML = rows;
+    } else {
+      // แสดงรายปีทั้งหมด
+      if (badge) badge.textContent = `แสดง ${YEARS.length} ปี`;
+      if (thead) thead.innerHTML = `<tr><th>ปีงบประมาณ</th><th>รวม</th><th>ผ่าน</th><th>ไม่ผ่าน</th><th>อัตราผ่าน</th><th>YoY</th>${PROVS.map(p=>`<th>${p}</th>`).join('')}</tr>`;
+      const yoys = yoyArr2(c.totals);
+      const rows = YEARS.map((y,i) => {
+        const t=c.totals[i], p=c.passed[i], f=c.failed[i];
+        const rate=t>0?Math.round(p/t*100):0;
+        const yoyV=yoys[i];
+        const yoyStr=yoyV===null?'-':(yoyV>=0?`<span class="trend-up">▲ ${yoyV}%</span>`:`<span class="trend-dn">▼ ${Math.abs(yoyV)}%</span>`);
+        const provCells=PROVS.map(pr=>`<td>${(c.prov[pr]||[])[i]||0}</td>`).join('');
+        return `<tr><td><b>พ.ศ. ${y}</b></td><td>${t}</td><td>${p}</td><td>${f}</td>
+          <td><span class="badge ${rate>=80?'b-green':rate>=60?'b-amber':'b-red'}">${rate}%</span></td>
+          <td>${yoyStr}</td>${provCells}</tr>`;
+      }).join('');
+      tbody.innerHTML = rows || `<tr><td colspan="100" style="text-align:center;padding:20px;color:var(--muted);">ไม่พบข้อมูล</td></tr>`;
+    }
     return;
   }
 
@@ -1120,43 +1212,28 @@ function renderYrTable(key) {
   const yrTot  = c.totals[yi];
   const moLabel = mo !== '' ? MONTHS_TH[+mo] : 'ทุกเดือน';
   if (badge) badge.textContent = `พ.ศ. ${yr} — ${moLabel}`;
-
   if (thead) thead.innerHTML = `<tr><th>เดือน</th><th>รวม</th><th>ผ่าน</th><th>ไม่ผ่าน</th><th>อัตราผ่าน</th><th>% ของปี</th><th>MoM</th></tr>`;
-
-  // คำนวณ MoM ของ 12 เดือน
-  const momArr = mData.map((v,i) => i===0?null : mData[i-1]>0 ? Math.round((v-mData[i-1])/mData[i-1]*100) : null);
-
+  const momArr = mData.map((v,i)=>i===0?null:mData[i-1]>0?Math.round((v-mData[i-1])/mData[i-1]*100):null);
   const rows = MONTHS_TH.map((mName, mi) => {
     if (mo !== '' && mi !== +mo) return '';
-    const t  = mData[mi];
-    const p  = mPass[mi];
-    const f  = t - p;
-    const rate    = t>0 ? Math.round(p/t*100) : 0;
-    const pctYear = yrTot>0 ? (t/yrTot*100).toFixed(1) : '0.0';
-    const momV    = momArr[mi];
-    const momStr  = momV===null?'-':(momV>=0?`<span class="trend-up">▲ ${momV}%</span>`:`<span class="trend-dn">▼ ${Math.abs(momV)}%</span>`);
-    return `<tr>
-      <td><b>${mName}</b></td>
-      <td>${t}</td><td>${p}</td><td>${f}</td>
+    const t=mData[mi], p=mPass[mi], f=t-p;
+    const rate=t>0?Math.round(p/t*100):0;
+    const pctYear=yrTot>0?(t/yrTot*100).toFixed(1):'0.0';
+    const momV=momArr[mi];
+    const momStr=momV===null?'-':(momV>=0?`<span class="trend-up">▲ ${momV}%</span>`:`<span class="trend-dn">▼ ${Math.abs(momV)}%</span>`);
+    return `<tr><td><b>${mName}</b></td><td>${t}</td><td>${p}</td><td>${f}</td>
       <td><span class="badge ${rate>=80?'b-green':rate>=60?'b-amber':'b-red'}">${t>0?rate+'%':'—'}</span></td>
-      <td>${pctYear}%</td>
-      <td>${momStr}</td>
-    </tr>`;
+      <td>${pctYear}%</td><td>${momStr}</td></tr>`;
   }).join('');
-
-  // สรุปรวม (เฉพาะ mode ทุกเดือน)
   let summaryRow = '';
   if (mo === '') {
-    const tSum = mData.reduce((a,b)=>a+b,0);
-    const pSum = mPass.reduce((a,b)=>a+b,0);
-    const fSum = tSum - pSum;
-    const rSum = tSum>0?Math.round(pSum/tSum*100):0;
-    summaryRow = `<tr style="font-weight:700;background:var(--light);">
+    const tSum=mData.reduce((a,b)=>a+b,0), pSum=mPass.reduce((a,b)=>a+b,0);
+    const fSum=tSum-pSum, rSum=tSum>0?Math.round(pSum/tSum*100):0;
+    summaryRow=`<tr style="font-weight:700;background:var(--light);">
       <td>รวม</td><td>${tSum}</td><td>${pSum}</td><td>${fSum}</td>
       <td><span class="badge ${rSum>=80?'b-green':rSum>=60?'b-amber':'b-red'}">${rSum}%</span></td>
       <td>100%</td><td>—</td></tr>`;
   }
-
   tbody.innerHTML = rows + summaryRow || `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted);">ไม่พบข้อมูล</td></tr>`;
 }
 function yoyArr2(vals){return vals.map((v,i)=>i===0?null:Math.round((v-vals[i-1])/vals[i-1]*100));}
@@ -1583,9 +1660,19 @@ function updateDynamicLabels() {
   const sub = document.querySelector('.hdr-sub');
   if (sub) sub.textContent = `ข้อมูลสะสม ${n} ปีงบประมาณ`;
   const ovDesc = document.querySelector('#sec-ov .sec-hdr p');
-  if (ovDesc) ovDesc.textContent = `ข้อมูลสะสม ปีงบประมาณ ${first}–${last} | ๕ จังหวัด`;
-  const trendTitle = document.querySelector('#sec-ov .card-title');
-  if (trendTitle) trendTitle.innerHTML = `📈 แนวโน้มการตรวจสอบรายปี (ทุกหมวด พ.ศ. ${first}–${last})`;
+  if (ovDesc) ovDesc.textContent = `ข้อมูลสะสม ปีงบประมาณ ${first}–${last} | 5 จังหวัด (ราชบุรี นครปฐม เพชรบุรี สมุทรสาคร สมุทรสงคราม)`;
+  // Re-populate year filter dropdowns for overview trend
+  const yrFrom = document.getElementById('ov-yr-from');
+  const yrTo   = document.getElementById('ov-yr-to');
+  if (yrFrom && yrTo) {
+    [yrFrom, yrTo].forEach(sel => { sel.innerHTML = ''; });
+    YEARS.forEach(y => {
+      yrFrom.appendChild(new Option(`พ.ศ. ${y}`, y));
+      yrTo.appendChild(new Option(`พ.ศ. ${y}`, y));
+    });
+    yrFrom.value = YEARS[0];
+    yrTo.value   = YEARS[YEARS.length-1];
+  }
 }
 applyTheme();
 initFirebase();
