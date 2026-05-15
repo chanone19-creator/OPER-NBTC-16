@@ -788,17 +788,25 @@ function buildCat(key){
 
   <!-- TABLE -->
   <div class="card" style="margin-top:14px;">
-    <div class="card-title">📋 ตารางสรุปรายปี</div>
+    <div class="card-title">📋 ตารางสรุป</div>
     <div class="fbar" style="margin-bottom:10px;">
       <div class="fg"><label>ปีงบประมาณ</label>
-        <select id="f-${key}-yr" onchange="renderYrTable('${key}')">
+        <select id="f-${key}-yr" onchange="onYearChange('${key}')">
           <option value="">ทั้งหมด</option>
           ${YEARS.map(y=>`<option value="${y}">${y}</option>`).join('')}
         </select>
       </div>
+      <div class="fg" id="fg-mo-${key}" style="display:none;">
+        <label>เดือน</label>
+        <select id="f-${key}-mo" onchange="renderYrTable('${key}')">
+          <option value="">ทุกเดือน</option>
+          ${MONTHS_TH.map((m,i)=>`<option value="${i}">${m}</option>`).join('')}
+        </select>
+      </div>
+      <span id="tbl-mode-badge-${key}" style="font-size:11px;color:var(--muted);margin-left:4px;"></span>
     </div>
     <div class="tbl-wrap"><table id="tbl-${key}">
-      <thead><tr><th>ปีงบประมาณ</th><th>รวม</th><th>ผ่าน</th><th>ไม่ผ่าน</th><th>อัตราผ่าน</th><th>เปลี่ยนแปลง YoY</th>${PROVS.map(p=>`<th>${p}</th>`).join('')}</tr></thead>
+      <thead id="thead-${key}"></thead>
       <tbody id="tbody-${key}"></tbody>
     </table></div>
   </div>
@@ -865,23 +873,143 @@ function buildCat(key){
   },50);
 }
 
-function renderYrTable(key){
-  const c=CAT[key];
-  const f=document.getElementById(`f-${key}-yr`).value;
-  const rows=YEARS.map((y,i)=>{
-    if(f&&String(y)!==f)return '';
-    const t=c.totals[i],p=c.passed[i],fail=c.failed[i];
-    const rate=Math.round(p/t*100);
-    const yoyV=yoyArr2(c.totals)[i];
-    const yoyStr=yoyV===null?'-':(yoyV>=0?`<span class="trend-up">▲ ${yoyV}%</span>`:`<span class="trend-dn">▼ ${Math.abs(yoyV)}%</span>`);
-    const provCells=PROVS.map(pr=>`<td>${(c.prov[pr]||[])[i]||0}</td>`).join('');
-    return `<tr><td><b>พ.ศ. ${y}</b></td><td>${t}</td><td>${p}</td><td>${fail}</td>
-      <td><span class="badge ${rate>=80?'b-green':rate>=60?'b-amber':'b-red'}">${rate}%</span></td>
-      <td>${yoyStr}</td>${provCells}</tr>`;
+function onYearChange(key) {
+  const yr = document.getElementById(`f-${key}-yr`).value;
+  const moGroup = document.getElementById(`fg-mo-${key}`);
+  const moSel   = document.getElementById(`f-${key}-mo`);
+  if (yr) {
+    moGroup.style.display = '';
+  } else {
+    moGroup.style.display = 'none';
+    if (moSel) moSel.value = '';
+  }
+  renderYrTable(key);
+}
+
+function renderYrTable(key) {
+  const c = CAT[key];
+  ensureMonthly(key);
+  const yr  = document.getElementById(`f-${key}-yr`)?.value ?? '';
+  const mo  = document.getElementById(`f-${key}-mo`)?.value ?? '';
+  const thead = document.getElementById(`thead-${key}`);
+  const tbody = document.getElementById(`tbody-${key}`);
+  const badge = document.getElementById(`tbl-mode-badge-${key}`);
+
+  // ── โหมดรายปี (ไม่ได้เลือกปี) ─────────────────────────────
+  if (!yr) {
+    if (badge) badge.textContent = `แสดง ${YEARS.length} ปี`;
+    if (thead) thead.innerHTML = `<tr><th>ปีงบประมาณ</th><th>รวม</th><th>ผ่าน</th><th>ไม่ผ่าน</th><th>อัตราผ่าน</th><th>YoY</th>${PROVS.map(p=>`<th>${p}</th>`).join('')}</tr>`;
+    const yoys = yoyArr2(c.totals);
+    const rows = YEARS.map((y,i) => {
+      const t=c.totals[i], p=c.passed[i], f=c.failed[i];
+      const rate = t>0 ? Math.round(p/t*100) : 0;
+      const yoyV = yoys[i];
+      const yoyStr = yoyV===null?'-':(yoyV>=0?`<span class="trend-up">▲ ${yoyV}%</span>`:`<span class="trend-dn">▼ ${Math.abs(yoyV)}%</span>`);
+      const provCells = PROVS.map(pr=>`<td>${(c.prov[pr]||[])[i]||0}</td>`).join('');
+      return `<tr><td><b>พ.ศ. ${y}</b></td><td>${t}</td><td>${p}</td><td>${f}</td>
+        <td><span class="badge ${rate>=80?'b-green':rate>=60?'b-amber':'b-red'}">${rate}%</span></td>
+        <td>${yoyStr}</td>${provCells}</tr>`;
+    }).join('');
+    tbody.innerHTML = rows || `<tr><td colspan="100" style="text-align:center;padding:20px;color:var(--muted);">ไม่พบข้อมูล</td></tr>`;
+    return;
+  }
+
+  // ── โหมดรายเดือน (เลือกปีแล้ว) ────────────────────────────
+  const yi = YEARS.indexOf(+yr);
+  if (yi === -1) { tbody.innerHTML=''; return; }
+  const mData  = c.monthly[yi]       || Array(12).fill(0);
+  const mPass  = c.monthlyPassed[yi] || Array(12).fill(0);
+  const yrTot  = c.totals[yi];
+  const moLabel = mo !== '' ? MONTHS_TH[+mo] : 'ทุกเดือน';
+  if (badge) badge.textContent = `พ.ศ. ${yr} — ${moLabel}`;
+
+  if (thead) thead.innerHTML = `<tr><th>เดือน</th><th>รวม</th><th>ผ่าน</th><th>ไม่ผ่าน</th><th>อัตราผ่าน</th><th>% ของปี</th><th>MoM</th></tr>`;
+
+  // คำนวณ MoM ของ 12 เดือน
+  const momArr = mData.map((v,i) => i===0?null : mData[i-1]>0 ? Math.round((v-mData[i-1])/mData[i-1]*100) : null);
+
+  const rows = MONTHS_TH.map((mName, mi) => {
+    if (mo !== '' && mi !== +mo) return '';
+    const t  = mData[mi];
+    const p  = mPass[mi];
+    const f  = t - p;
+    const rate    = t>0 ? Math.round(p/t*100) : 0;
+    const pctYear = yrTot>0 ? (t/yrTot*100).toFixed(1) : '0.0';
+    const momV    = momArr[mi];
+    const momStr  = momV===null?'-':(momV>=0?`<span class="trend-up">▲ ${momV}%</span>`:`<span class="trend-dn">▼ ${Math.abs(momV)}%</span>`);
+    return `<tr>
+      <td><b>${mName}</b></td>
+      <td>${t}</td><td>${p}</td><td>${f}</td>
+      <td><span class="badge ${rate>=80?'b-green':rate>=60?'b-amber':'b-red'}">${t>0?rate+'%':'—'}</span></td>
+      <td>${pctYear}%</td>
+      <td>${momStr}</td>
+    </tr>`;
   }).join('');
-  document.getElementById(`tbody-${key}`).innerHTML=rows||`<tr><td colspan="100" class="no-data" style="text-align:center;padding:20px;color:#64748B;">ไม่พบข้อมูล</td></tr>`;
+
+  // สรุปรวม (เฉพาะ mode ทุกเดือน)
+  let summaryRow = '';
+  if (mo === '') {
+    const tSum = mData.reduce((a,b)=>a+b,0);
+    const pSum = mPass.reduce((a,b)=>a+b,0);
+    const fSum = tSum - pSum;
+    const rSum = tSum>0?Math.round(pSum/tSum*100):0;
+    summaryRow = `<tr style="font-weight:700;background:var(--light);">
+      <td>รวม</td><td>${tSum}</td><td>${pSum}</td><td>${fSum}</td>
+      <td><span class="badge ${rSum>=80?'b-green':rSum>=60?'b-amber':'b-red'}">${rSum}%</span></td>
+      <td>100%</td><td>—</td></tr>`;
+  }
+
+  tbody.innerHTML = rows + summaryRow || `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted);">ไม่พบข้อมูล</td></tr>`;
 }
 function yoyArr2(vals){return vals.map((v,i)=>i===0?null:Math.round((v-vals[i-1])/vals[i-1]*100));}
+
+// ============================================================
+// MONTHLY DATA
+// ============================================================
+const MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+                   'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const MONTHS_TH_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.',
+                         'ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+// น้ำหนักตามฤดูกาล (ม.ค.–ธ.ค.) สำหรับ generate ข้อมูลตัวอย่าง
+// ปีงบประมาณไทย ต.ค.–ก.ย. → งานมักมากช่วง พ.ย.–ม.ค. และ มิ.ย.–ก.ย.
+const MON_WEIGHTS = [9,7,8,7,8,9,9,9,9,8,8,9]; // Jan–Dec, sum=100
+
+function ensureMonthly(key) {
+  const c = CAT[key];
+  if (c.monthly) return;
+  const wSum = MON_WEIGHTS.reduce((a,b)=>a+b, 0);
+  c.monthly = c.totals.map(t => {
+    const dist = MON_WEIGHTS.map(w => Math.floor(t * w / wSum));
+    // กระจายเศษให้ยอดรวมตรง
+    let rem = t - dist.reduce((a,b)=>a+b, 0);
+    const order = MON_WEIGHTS.map((w,i)=>({w,i})).sort((a,b)=>b.w-a.w);
+    order.forEach(({i}) => { if(rem>0){dist[i]++;rem--;} });
+    return dist;
+  });
+  c.monthlyPassed = c.totals.map((t, yi) => {
+    const p = c.passed[yi];
+    return c.monthly[yi].map(mTotal =>
+      t > 0 ? Math.min(mTotal, Math.round(p * mTotal / t)) : 0
+    );
+  });
+}
+
+// แยก month index (0–11) จาก date string
+function extractMonth(val) {
+  if (!val) return null;
+  const s = String(val).trim();
+  // DD/MM/YYYY — month อยู่ส่วนที่ 2
+  const m1 = s.match(/^\d{1,2}\/(\d{1,2})\/\d{4}/);
+  if (m1) { const mo = +m1[1]-1; return (mo>=0&&mo<12)?mo:null; }
+  // YYYY-MM-DD
+  const m2 = s.match(/^\d{4}-(\d{2})-\d{2}/);
+  if (m2) { const mo = +m2[1]-1; return (mo>=0&&mo<12)?mo:null; }
+  // D/M/YYYY (single digit)
+  const m3 = s.match(/\d{1,2}\/(\d{1,2})\//);
+  if (m3) { const mo = +m3[1]-1; return (mo>=0&&mo<12)?mo:null; }
+  return null;
+}
 
 // ============================================================
 // TAB SWITCHING
@@ -1087,13 +1215,15 @@ function ensureYear(yr) {
   const pos = YEARS.findIndex(y => y > yr);
   const idx = pos === -1 ? YEARS.length : pos;
   YEARS.splice(idx, 0, yr);
-  // ขยาย array ของทุก category ณ ตำแหน่งเดียวกัน
   Object.values(CAT).forEach(c => {
     c.totals.splice(idx, 0, 0);
     c.passed.splice(idx, 0, 0);
     c.failed.splice(idx, 0, 0);
     Object.values(c.prov).forEach(arr => arr.splice(idx, 0, 0));
     Object.values(c.types).forEach(arr => arr.splice(idx, 0, 0));
+    // ขยาย monthly arrays ด้วย (ถ้ามีแล้ว)
+    if (c.monthly)        c.monthly.splice(idx, 0, Array(12).fill(0));
+    if (c.monthlyPassed)  c.monthlyPassed.splice(idx, 0, Array(12).fill(0));
   });
 }
 
@@ -1113,6 +1243,9 @@ function aggregateRecords(key, allRecs) {
   const prov = {};
   PROVS.forEach(p => { prov[p] = Array(n).fill(0); });
   const types = {};
+  // monthly[yearIdx][monthIdx]
+  const monthly       = Array.from({length:n}, ()=>Array(12).fill(0));
+  const monthlyPassed = Array.from({length:n}, ()=>Array(12).fill(0));
 
   allRecs.forEach(r => {
     const yr = cols.date ? extractYear(r[cols.date]) : null;
@@ -1122,6 +1255,13 @@ function aggregateRecords(key, allRecs) {
     totals[yi]++;
     const pass = cols.result ? isPassResult(r[cols.result]) : true;
     if (pass) passed[yi]++; else failed[yi]++;
+
+    // monthly
+    const mo = cols.date ? extractMonth(r[cols.date]) : null;
+    if (mo !== null) {
+      monthly[yi][mo]++;
+      if (pass) monthlyPassed[yi][mo]++;
+    }
 
     if (cols.prov) {
       const pv = String(r[cols.prov]).trim();
@@ -1142,6 +1282,8 @@ function aggregateRecords(key, allRecs) {
   CAT[key].passed = passed;
   CAT[key].failed = failed;
   CAT[key].prov = prov;
+  CAT[key].monthly = monthly;
+  CAT[key].monthlyPassed = monthlyPassed;
   if (Object.keys(types).length > 0) CAT[key].types = types;
 }
 
