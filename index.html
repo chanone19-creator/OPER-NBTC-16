@@ -16,7 +16,36 @@
   --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
   --shadow2:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.06);
   --r:10px;
+  --chart-grid:rgba(0,0,0,.06);
 }
+/* ── DARK MODE ── */
+body.dark {
+  --bg:#0F172A; --white:#1E293B; --border:#334155;
+  --text:#E2E8F0; --muted:#94A3B8; --light:#1E293B;
+  --shadow:0 1px 3px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.3);
+  --chart-grid:rgba(255,255,255,.06);
+}
+body.dark .sidebar{background:linear-gradient(180deg,#050D1A 0%,#0B1829 100%);}
+body.dark .hdr{background:linear-gradient(135deg,#050D1A 0%,#0B1829 100%);}
+body.dark .fbar,body.dark .card,body.dark .modal-box,body.dark .kpi,
+body.dark .stat-item,body.dark .cause-card,body.dark .insight,
+body.dark .imp-summary,body.dark .cd-item,body.dark .tbl-wrap{background:var(--white);border-color:var(--border);}
+body.dark thead th{background:#1e3a5f;}
+body.dark tbody tr:nth-child(even){background:#162032;}
+body.dark tbody tr:hover{background:#1e3a5f;}
+body.dark .fg select,body.dark .fg input,body.dark .search-box{background:#0F172A;color:var(--text);border-color:var(--border);}
+body.dark .pager button{background:#1E293B;color:var(--text);border-color:var(--border);}
+body.dark .pager button.active{background:var(--blue);}
+body.dark .btn-ghost{background:#1E293B;color:var(--muted);border-color:var(--border);}
+body.dark .ov-ycard{background:#1E293B;}
+body.dark .forecast-card{background:linear-gradient(135deg,#050D1A,#0B1829);}
+body.dark .dz{background:#0F172A;border-color:var(--border);}
+body.dark .dz:hover,body.dark .dz.dg{background:#162032;border-color:var(--blue);}
+/* Dark mode toggle button */
+.dark-toggle{background:none;border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:4px 12px;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.2s;white-space:nowrap;}
+.dark-toggle:hover{background:rgba(255,255,255,.1);}
+/* smooth transition */
+body,body *{transition:background-color .2s,border-color .2s,color .2s;}
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,sans-serif;}
 body{background:var(--bg);color:var(--text);font-size:14px;display:flex;flex-direction:column;min-height:100vh;}
 /* HEADER */
@@ -186,6 +215,9 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:t
   <h1>Dashboard ผลการตรวจสอบ กสทช. เขต ๑๖</h1>
   <div class="hdr-badge">ปี ๒๕๖๐–๒๕๖๙</div>
   <div class="hdr-sub">ข้อมูลสะสม ๑๐ ปีงบประมาณ</div>
+  <button class="dark-toggle" id="darkToggle" onclick="toggleDark()">
+    <span id="darkIcon">🌙</span><span id="darkLabel">มืด</span>
+  </button>
 </div>
 
 <div class="layout">
@@ -599,10 +631,23 @@ const chartReg={};
 function makeChart(id,type,data,opts={}){
   const el=document.getElementById(id); if(!el)return;
   if(chartReg[id]){chartReg[id].destroy();}
+  const isDark=document.body.classList.contains('dark');
+  const gridColor =isDark?'rgba(255,255,255,.08)':'rgba(0,0,0,.06)';
+  const tickColor =isDark?'#94A3B8':'#64748B';
+  const legendColor=isDark?'#E2E8F0':'#1E293B';
+  // ฉีด color เข้า scales ทุก axis ที่ opts กำหนด
+  const scales={};
+  Object.entries(opts.scales||{}).forEach(([k,v])=>{
+    scales[k]={...v,ticks:{...v.ticks,color:tickColor},grid:{color:gridColor}};
+  });
   chartReg[id]=new Chart(el.getContext('2d'),{type,data,options:{
     responsive:true,maintainAspectRatio:true,
-    plugins:{legend:{labels:{font:{size:11}}},tooltip:{mode:'index',intersect:false},...(opts.plugins||{})},
-    scales:opts.scales||{},
+    plugins:{
+      legend:{labels:{font:{size:11},color:legendColor}},
+      tooltip:{mode:'index',intersect:false},
+      ...(opts.plugins||{})
+    },
+    scales,
     ...opts
   }});
 }
@@ -1148,6 +1193,48 @@ function addImpBtn(key) {
 // ============================================================
 // INIT
 // ============================================================
+// ============================================================
+// DARK MODE
+// ============================================================
+function toggleDark() {
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('nbtc16-theme', isDark ? 'dark' : 'light');
+  document.getElementById('darkIcon').textContent  = isDark ? '☀️' : '🌙';
+  document.getElementById('darkLabel').textContent = isDark ? 'สว่าง' : 'มืด';
+  updateChartTheme(isDark);
+}
+
+function updateChartTheme(isDark) {
+  const gridColor  = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)';
+  const tickColor  = isDark ? '#94A3B8' : '#64748B';
+  const legendColor= isDark ? '#E2E8F0' : '#1E293B';
+  Object.values(chartReg).forEach(ch => {
+    if (!ch) return;
+    // scales
+    ['x','y'].forEach(ax => {
+      if (ch.options.scales?.[ax]) {
+        ch.options.scales[ax].ticks = { ...ch.options.scales[ax].ticks, color: tickColor };
+        ch.options.scales[ax].grid  = { color: gridColor };
+      }
+    });
+    // legend
+    if (ch.options.plugins?.legend?.labels)
+      ch.options.plugins.legend.labels.color = legendColor;
+    ch.update('none');
+  });
+}
+
+function applyTheme() {
+  const saved = localStorage.getItem('nbtc16-theme');
+  // ถ้าไม่มี preference ให้ตรวจ OS preference
+  const preferDark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (preferDark) {
+    document.body.classList.add('dark');
+    document.getElementById('darkIcon').textContent  = '☀️';
+    document.getElementById('darkLabel').textContent = 'สว่าง';
+  }
+}
+
 function updateDynamicLabels() {
   const first = YEARS[0], last = YEARS[YEARS.length-1], n = YEARS.length;
   const badge = document.querySelector('.hdr-badge');
@@ -1159,6 +1246,7 @@ function updateDynamicLabels() {
   const trendTitle = document.querySelector('#sec-ov .card-title');
   if (trendTitle) trendTitle.innerHTML = `📈 แนวโน้มการตรวจสอบรายปี (ทุกหมวด พ.ศ. ${first}–${last})`;
 }
+applyTheme();
 buildOverview();
 updateDynamicLabels();
 </script>
