@@ -814,24 +814,6 @@ function makeChart(id,type,data,opts={}){
 // OVERVIEW
 // ============================================================
 function buildOverview(){
-  // KPI
-  const totals=Object.values(CAT).map(c=>c.totals.reduce((a,b)=>a+b,0));
-  const grand=totals.reduce((a,b)=>a+b,0);
-  const allFailed=Object.values(CAT).map(c=>c.failed.reduce((a,b)=>a+b,0)).reduce((a,b)=>a+b,0);
-  const passRate=Math.round((grand-allFailed)/grand*100);
-  const kpiData=[
-    {num:grand,lbl:`รวมทุกการตรวจสอบ (${YEARS.length} ปี)`,color:'#2563EB',delta:null},
-    {num:grand-allFailed,lbl:'ผ่านมาตรฐาน',color:'#059669',delta:passRate+'%'},
-    {num:allFailed,lbl:'ไม่ผ่าน/พบปัญหา',color:'#DC2626',delta:null},
-    {num:Object.values(CAT).reduce((s,c)=>s+(c.totals[YEARS.length-1]||0),0),lbl:`ปี ${YEARS[YEARS.length-1]} (ล่าสุด)`,color:'#7C3AED',delta:null},
-  ];
-  document.getElementById('ov-kpis').innerHTML=kpiData.map(k=>`
-    <div class="kpi" style="--kpi-color:${k.color}">
-      <div class="kpi-num">${k.num.toLocaleString()}</div>
-      <div class="kpi-label">${k.lbl}</div>
-      ${k.delta?`<div class="kpi-delta up">✔ ${k.delta} อัตราผ่าน</div>`:''}
-    </div>`).join('');
-
   // Populate trend filter dropdowns
   const catSel = document.getElementById('ov-cat-sel');
   if (catSel) {
@@ -855,52 +837,8 @@ function buildOverview(){
     yrTo.value   = YEARS.includes(prevTo)   ? prevTo   : YEARS[YEARS.length-1];
   }
 
-  // Trend chart via filter function
+  // updateOvTrend() handles trend chart, KPI, doughnut, province bar, and forecast
   updateOvTrend();
-
-  // Category doughnut
-  makeChart('ch-ov-cat','doughnut',{
-    labels:Object.values(CAT).map(c=>c.label),
-    datasets:[{data:totals,backgroundColor:PALETTE.slice(0,6),borderWidth:2,borderColor:'#fff',hoverOffset:8}]
-  },{plugins:{
-    legend:{position:'bottom',labels:{font:{size:10},padding:8}},
-    datalabels:{
-      display:true,color:'#fff',font:{weight:'bold',size:11},
-      formatter:(v,ctx)=>{
-        const s=ctx.dataset.data.reduce((a,b)=>a+b,0);
-        const pct=Math.round(v/s*100);
-        return pct>=6?`${pct}%`:'';
-      }
-    }
-  }});
-
-  // Province bar
-  const provTotals=PROVS.map(p=>Object.values(CAT).reduce((s,c)=>s+(c.prov[p]||[]).reduce((a,b)=>a+b,0),0));
-  makeChart('ch-ov-prov','bar',{
-    labels:PROVS,
-    datasets:[{label:'รวมทุกประเภท',data:provTotals,backgroundColor:PALETTE,borderRadius:6}]
-  },{
-    plugins:{
-      legend:{display:false},
-      datalabels:{
-        display:true,anchor:'end',align:'top',
-        color:'#475569',font:{size:11,weight:'bold'},
-        formatter:v=>v
-      }
-    },
-    scales:{y:{beginAtZero:true}}
-  });
-
-  // Forecast
-  document.getElementById('ov-forecast').innerHTML=Object.values(CAT).map(c=>{
-    const {forecast,slope}=linReg(c.totals.slice(0,-1));
-    const fc=Math.max(0,Math.round(forecast));
-    return `<div class="fc-item">
-      <div class="fc-num">${fc}</div>
-      <div class="fc-lbl">${c.label}</div>
-      <div class="fc-trend" style="color:${slope>0?'#6EE7B7':'#FCA5A5'}">${slope>0?'▲':'▼'} ${Math.abs(slope).toFixed(1)}/ปี</div>
-    </div>`;
-  }).join('');
 }
 
 function updateOvTrend() {
@@ -937,6 +875,70 @@ function updateOvTrend() {
      plugins:{legend:{labels:{font:{size:11}}},tooltip:{mode:'index',intersect:false},datalabels:{display:false}},
      scales:{y:{beginAtZero:true,ticks:{font:{size:10}}},x:{ticks:{font:{size:10}}}}
     });
+
+  // Update KPI, doughnut, province bar, and forecast to match filtered year range
+  const filtTotals = Object.values(CAT).map(c => filtIdx.reduce((s,i) => s+(c.totals[i]||0), 0));
+  const filtGrand  = filtTotals.reduce((a,b) => a+b, 0);
+  const filtFailed = Object.values(CAT).map(c => filtIdx.reduce((s,i) => s+(c.failed[i]||0), 0)).reduce((a,b) => a+b, 0);
+  const filtPassRate = filtGrand > 0 ? Math.round((filtGrand-filtFailed)/filtGrand*100) : 0;
+  const filtLastIdx  = filtIdx[filtIdx.length-1];
+  const filtLatest   = Object.values(CAT).reduce((s,c) => s+(c.totals[filtLastIdx]||0), 0);
+  const filtLastYear = YEARS[filtLastIdx];
+  const kpiData=[
+    {num:filtGrand,lbl:`รวมทุกการตรวจสอบ (${filtIdx.length} ปี)`,color:'#2563EB',delta:null},
+    {num:filtGrand-filtFailed,lbl:'ผ่านมาตรฐาน',color:'#059669',delta:filtPassRate+'%'},
+    {num:filtFailed,lbl:'ไม่ผ่าน/พบปัญหา',color:'#DC2626',delta:null},
+    {num:filtLatest,lbl:`ปี ${filtLastYear} (ล่าสุด)`,color:'#7C3AED',delta:null},
+  ];
+  document.getElementById('ov-kpis').innerHTML=kpiData.map(k=>`
+    <div class="kpi" style="--kpi-color:${k.color}">
+      <div class="kpi-num">${k.num.toLocaleString()}</div>
+      <div class="kpi-label">${k.lbl}</div>
+      ${k.delta?`<div class="kpi-delta up">✔ ${k.delta} อัตราผ่าน</div>`:''}
+    </div>`).join('');
+
+  makeChart('ch-ov-cat','doughnut',{
+    labels:Object.values(CAT).map(c=>c.label),
+    datasets:[{data:filtTotals,backgroundColor:PALETTE.slice(0,6),borderWidth:2,borderColor:'#fff',hoverOffset:8}]
+  },{plugins:{
+    legend:{position:'bottom',labels:{font:{size:10},padding:8}},
+    datalabels:{
+      display:true,color:'#fff',font:{weight:'bold',size:11},
+      formatter:(v,ctx)=>{
+        const s=ctx.dataset.data.reduce((a,b)=>a+b,0);
+        const pct=Math.round(v/s*100);
+        return pct>=6?`${pct}%`:'';
+      }
+    }
+  }});
+
+  const filtProvTotals=PROVS.map(p=>Object.values(CAT).reduce((s,c)=>s+filtIdx.reduce((ps,i)=>ps+(c.prov[p]?c.prov[p][i]||0:0),0),0));
+  makeChart('ch-ov-prov','bar',{
+    labels:PROVS,
+    datasets:[{label:'รวมทุกประเภท',data:filtProvTotals,backgroundColor:PALETTE,borderRadius:6}]
+  },{
+    plugins:{
+      legend:{display:false},
+      datalabels:{
+        display:true,anchor:'end',align:'top',
+        color:'#475569',font:{size:11,weight:'bold'},
+        formatter:v=>v
+      }
+    },
+    scales:{y:{beginAtZero:true}}
+  });
+
+  document.getElementById('ov-forecast').innerHTML=Object.values(CAT).map(c=>{
+    const filtData=filtIdx.map(i=>c.totals[i]||0);
+    const src=filtData.length>1?filtData.slice(0,-1):filtData;
+    const {forecast,slope}=linReg(src);
+    const fc=Math.max(0,Math.round(forecast));
+    return `<div class="fc-item">
+      <div class="fc-num">${fc}</div>
+      <div class="fc-lbl">${c.label}</div>
+      <div class="fc-trend" style="color:${slope>0?'#6EE7B7':'#FCA5A5'}">${slope>0?'▲':'▼'} ${Math.abs(slope).toFixed(1)}/ปี</div>
+    </div>`;
+  }).join('');
 }
 
 // ============================================================
