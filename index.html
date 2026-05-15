@@ -351,7 +351,7 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:t
 // ============================================================
 // DATA
 // ============================================================
-const YEARS = [2560,2561,2562,2563,2564,2565,2566,2567,2568,2569];
+let YEARS = [2560,2561,2562,2563,2564,2565,2566,2567,2568,2569];
 const PROVS = ['ราชบุรี','กาญจนบุรี','สุพรรณบุรี','นครปฐม','สมุทรสาคร'];
 
 const CAT = {
@@ -617,10 +617,10 @@ function buildOverview(){
   const allFailed=Object.values(CAT).map(c=>c.failed.reduce((a,b)=>a+b,0)).reduce((a,b)=>a+b,0);
   const passRate=Math.round((grand-allFailed)/grand*100);
   const kpiData=[
-    {num:grand,lbl:'รวมทุกการตรวจสอบ (๑๐ ปี)',color:'#2563EB',delta:null},
+    {num:grand,lbl:`รวมทุกการตรวจสอบ (${YEARS.length} ปี)`,color:'#2563EB',delta:null},
     {num:grand-allFailed,lbl:'ผ่านมาตรฐาน',color:'#059669',delta:passRate+'%'},
     {num:allFailed,lbl:'ไม่ผ่าน/พบปัญหา',color:'#DC2626',delta:null},
-    {num:Object.values(CAT).reduce((s,c)=>s+(c.totals[9]||0),0),lbl:'ปี ๒๕๖๙ (ปัจจุบัน)',color:'#7C3AED',delta:null},
+    {num:Object.values(CAT).reduce((s,c)=>s+(c.totals[YEARS.length-1]||0),0),lbl:`ปี ${YEARS[YEARS.length-1]} (ล่าสุด)`,color:'#7C3AED',delta:null},
   ];
   document.getElementById('ov-kpis').innerHTML=kpiData.map(k=>`
     <div class="kpi" style="--kpi-color:${k.color}">
@@ -655,7 +655,7 @@ function buildOverview(){
 
   // Forecast
   document.getElementById('ov-forecast').innerHTML=Object.values(CAT).map(c=>{
-    const {forecast,slope}=linReg(c.totals.slice(0,9));
+    const {forecast,slope}=linReg(c.totals.slice(0,-1));
     const fc=Math.max(0,Math.round(forecast));
     return `<div class="fc-item">
       <div class="fc-num">${fc}</div>
@@ -674,9 +674,9 @@ function buildCat(key){
   if(!container||container.dataset.built==='1')return;
   container.dataset.built='1';
 
-  const totYr=c.totals.slice(0,9); // excl partial 2569
+  const totYr=c.totals.slice(0,-1); // excl ปีล่าสุด (อาจยังไม่ครบปี)
   const reg=linReg(totYr);
-  const cagrVal=cagr(totYr[0],totYr[8],9);
+  const cagrVal=cagr(totYr[0],totYr[totYr.length-1],totYr.length);
   const ma=ma3(c.totals);
   const yoyArr=yoy(c.totals);
   const passTotal=c.passed.reduce((a,b)=>a+b,0);
@@ -692,16 +692,16 @@ function buildCat(key){
   container.innerHTML=`
   <!-- KPI -->
   <div class="kpi-row">
-    <div class="kpi" style="--kpi-color:${c.color}"><div class="kpi-num">${total10}</div><div class="kpi-label">รวม ๑๐ ปี</div></div>
+    <div class="kpi" style="--kpi-color:${c.color}"><div class="kpi-num">${total10}</div><div class="kpi-label">รวม ${YEARS.length} ปี (${YEARS[0]}–${YEARS[YEARS.length-1]})</div></div>
     <div class="kpi" style="--kpi-color:#059669"><div class="kpi-num">${passTotal}</div><div class="kpi-label">ผ่านมาตรฐาน</div><div class="kpi-delta up">✔ ${passRate}%</div></div>
     <div class="kpi" style="--kpi-color:#DC2626"><div class="kpi-num">${failTotal}</div><div class="kpi-label">ไม่ผ่าน/พบปัญหา</div><div class="kpi-delta dn">✘ ${100-passRate}%</div></div>
-    <div class="kpi" style="--kpi-color:#7C3AED"><div class="kpi-num">${cagrVal>0?'+':''}${cagrVal.toFixed(1)}%</div><div class="kpi-label">CAGR (๒๕๖๐–๒๕๖๘)</div><div class="kpi-delta ${cagrVal>0?'up':'dn'}">${cagrVal>0?'▲':'▼'} ${trendDir}</div></div>
+    <div class="kpi" style="--kpi-color:#7C3AED"><div class="kpi-num">${cagrVal>0?'+':''}${cagrVal.toFixed(1)}%</div><div class="kpi-label">CAGR (${YEARS[0]}–${YEARS[YEARS.length-2]})</div><div class="kpi-delta ${cagrVal>0?'up':'dn'}">${cagrVal>0?'▲':'▼'} ${trendDir}</div></div>
   </div>
 
   <!-- CHARTS ROW 1 -->
   <div class="grid2" style="margin-top:14px;">
     <div class="card full">
-      <div class="card-title">📈 แนวโน้มรายปี ๒๕๖๐–๒๕๖๙ <span class="ct-badge">Trend</span></div>
+      <div class="card-title">📈 แนวโน้มรายปี ${YEARS[0]}–${YEARS[YEARS.length-1]} <span class="ct-badge">Trend</span></div>
       <div class="chart-wrap tall"><canvas id="ch-${key}-trend"></canvas></div>
       <div class="insight" style="margin-top:10px;">
         <div class="insight-title">📐 สถิติเชิงวิเคราะห์</div>
@@ -709,7 +709,7 @@ function buildCat(key){
           <div class="stat-item"><div class="stat-val ${trendCls}">${trendIcon} ${trendDir}</div><div class="stat-lbl">แนวโน้ม</div></div>
           <div class="stat-item"><div class="stat-val">${reg.slope.toFixed(2)}</div><div class="stat-lbl">ค่าความชัน (cases/ปี)</div></div>
           <div class="stat-item"><div class="stat-val">${(reg.r2*100).toFixed(1)}%</div><div class="stat-lbl">R² (ความเหมาะสม)</div></div>
-          <div class="stat-item"><div class="stat-val">${Math.round(reg.forecast)}</div><div class="stat-lbl">พยากรณ์ ๒๕๗๐</div></div>
+          <div class="stat-item"><div class="stat-val">${Math.round(reg.forecast)}</div><div class="stat-lbl">พยากรณ์ ปี ${YEARS[YEARS.length-1]+1}</div></div>
         </div>
       </div>
     </div>
@@ -720,7 +720,7 @@ function buildCat(key){
     </div>
 
     <div class="card">
-      <div class="card-title">🗺 จำนวนตามจังหวัด (ตลอด ๑๐ ปี)</div>
+      <div class="card-title">🗺 จำนวนตามจังหวัด (ตลอด ${YEARS.length} ปี)</div>
       <div id="prov-bars-${key}"></div>
     </div>
   </div>
@@ -866,7 +866,7 @@ function exportAllCSV(){
   });
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
-  a.download='NBTC16_data_2560-2569.csv';
+  a.download=`NBTC16_data_${YEARS[0]}-${YEARS[YEARS.length-1]}.csv`;
   a.click();
 }
 
@@ -948,21 +948,29 @@ function detectCols(rows) {
 }
 
 // Extract Buddhist year from various formats
+// แปลงปีเป็นพุทธศักราช (>= 2500 = พุทธแล้ว, < 2500 = คริสต์)
+function toBE(y) {
+  if (y >= 2500) return y;
+  if (y >= 1900) return y + 543;
+  return null;
+}
 function extractYear(val) {
   if (!val || val === '') return null;
   const s = String(val).trim();
-  // DD/MM/YYYY or D/M/YYYY
+  // DD/MM/YYYY หรือ D/M/YYYY
   const m1 = s.match(/\d{1,2}\/\d{1,2}\/(\d{4})/);
-  if (m1) { const y = +m1[1]; return (y >= 2560 && y <= 2599) ? y : (y >= 2017 && y <= 2099) ? y + 543 : null; }
+  if (m1) return toBE(+m1[1]);
   // YYYY-MM-DD
   const m2 = s.match(/^(\d{4})-\d{2}-\d{2}/);
-  if (m2) { const y = +m2[1]; return (y >= 2560 && y <= 2599) ? y : (y >= 2017 && y <= 2099) ? y + 543 : null; }
-  // Just a year number
+  if (m2) return toBE(+m2[1]);
+  // ตัวเลขปีอย่างเดียว
   const m3 = s.match(/^(\d{4})$/);
-  if (m3) { const y = +m3[1]; return (y >= 2560 && y <= 2599) ? y : (y >= 2017 && y <= 2099) ? y + 543 : null; }
-  // ข้อความปีพุทธศักราช เช่น "2569" embedded in longer string
-  const m4 = s.match(/\b(25[6-9]\d)\b/);
+  if (m3) return toBE(+m3[1]);
+  // ปีฝังในข้อความ: พุทธ 2500-2999 ก่อน, คริสต์ 2020-2099 ถ้าไม่เจอ
+  const m4 = s.match(/\b(2[5-9]\d{2})\b/);
   if (m4) return +m4[1];
+  const m5 = s.match(/\b(20[2-9]\d)\b/);
+  if (m5) return +m5[1] + 543;
   return null;
 }
 
@@ -990,7 +998,7 @@ function showImpPreview(recs) {
   // ── กรองเฉพาะแถวที่ระบุปีได้ ────────────────────────────
   const validRecs = dedupedFile.filter(r => {
     const yr = impDetectedCols.date ? extractYear(r[impDetectedCols.date]) : null;
-    return yr && YEARS.includes(yr);
+    return yr !== null && yr >= 2500;  // รับทุกปีพุทธ >= 2500 ไม่จำกัดปลาย
   });
   const noYear = dedupedFile.length - validRecs.length;
 
@@ -1028,13 +1036,37 @@ function showImpPreview(recs) {
 }
 
 // รวม records ทั้งหมด (existing + ใหม่) แล้ว aggregate เป็นข้อมูลกราฟ
+// ขยาย YEARS และ array ใน CAT ทุกหมวดเมื่อพบปีใหม่
+function ensureYear(yr) {
+  if (YEARS.includes(yr)) return;
+  const pos = YEARS.findIndex(y => y > yr);
+  const idx = pos === -1 ? YEARS.length : pos;
+  YEARS.splice(idx, 0, yr);
+  // ขยาย array ของทุก category ณ ตำแหน่งเดียวกัน
+  Object.values(CAT).forEach(c => {
+    c.totals.splice(idx, 0, 0);
+    c.passed.splice(idx, 0, 0);
+    c.failed.splice(idx, 0, 0);
+    Object.values(c.prov).forEach(arr => arr.splice(idx, 0, 0));
+    Object.values(c.types).forEach(arr => arr.splice(idx, 0, 0));
+  });
+}
+
 function aggregateRecords(key, allRecs) {
   const cols = impDetectedCols;
-  const totals = Array(10).fill(0);
-  const passed = Array(10).fill(0);
-  const failed = Array(10).fill(0);
+
+  // ขยาย YEARS ก่อน ถ้ามีปีที่ยังไม่รู้จัก
+  allRecs.forEach(r => {
+    const yr = cols.date ? extractYear(r[cols.date]) : null;
+    if (yr && yr >= 2500) ensureYear(yr);
+  });
+
+  const n = YEARS.length;
+  const totals = Array(n).fill(0);
+  const passed = Array(n).fill(0);
+  const failed = Array(n).fill(0);
   const prov = {};
-  PROVS.forEach(p => { prov[p] = Array(10).fill(0); });
+  PROVS.forEach(p => { prov[p] = Array(n).fill(0); });
   const types = {};
 
   allRecs.forEach(r => {
@@ -1055,7 +1087,7 @@ function aggregateRecords(key, allRecs) {
     if (cols.type) {
       const t = String(r[cols.type]).trim();
       if (t) {
-        if (!types[t]) types[t] = Array(10).fill(0);
+        if (!types[t]) types[t] = Array(n).fill(0);
         types[t][yi]++;
       }
     }
@@ -1084,6 +1116,7 @@ function doImport() {
   const container = document.getElementById('cat-' + impTarget + '-content');
   if (container) { container.dataset.built = ''; container.innerHTML = ''; }
   buildOverview();
+  updateDynamicLabels();
   if (currentTab === impTarget) buildCat(impTarget);
 
   const added = impPreview.length;
@@ -1115,7 +1148,19 @@ function addImpBtn(key) {
 // ============================================================
 // INIT
 // ============================================================
+function updateDynamicLabels() {
+  const first = YEARS[0], last = YEARS[YEARS.length-1], n = YEARS.length;
+  const badge = document.querySelector('.hdr-badge');
+  if (badge) badge.textContent = `ปี ${first}–${last}`;
+  const sub = document.querySelector('.hdr-sub');
+  if (sub) sub.textContent = `ข้อมูลสะสม ${n} ปีงบประมาณ`;
+  const ovDesc = document.querySelector('#sec-ov .sec-hdr p');
+  if (ovDesc) ovDesc.textContent = `ข้อมูลสะสม ปีงบประมาณ ${first}–${last} | ๕ จังหวัด`;
+  const trendTitle = document.querySelector('#sec-ov .card-title');
+  if (trendTitle) trendTitle.innerHTML = `📈 แนวโน้มการตรวจสอบรายปี (ทุกหมวด พ.ศ. ${first}–${last})`;
+}
 buildOverview();
+updateDynamicLabels();
 </script>
 </body>
 </html>
