@@ -7,8 +7,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <style>
 :root {
   --navy:#0F2447; --navy2:#1B3A6B; --blue:#2563EB; --blue2:#3B82F6;
@@ -279,7 +277,7 @@ body.dark .clear-cloud-btn:hover{background:#450A0A;}
       <span class="nav-icon">⬇</span>ส่งออก CSV
     </button>
     <div id="sync-status" class="sync-badge sync-off" title="สถานะ Cloud Sync">☁️ กำลังเชื่อมต่อ...</div>
-    <button class="clear-cloud-btn" onclick="clearDataCloud()" title="รีเซ็ตข้อมูล import ทั้งหมด">🗑 ล้างข้อมูล Cloud</button>
+    <button class="clear-cloud-btn" onclick="clearDataCloud()" title="รีเซ็ตข้อมูล import ทั้งหมด">🗑 ล้างข้อมูลทั้งหมด</button>
   </div>
 </div>
 
@@ -418,47 +416,19 @@ body.dark .clear-cloud-btn:hover{background:#450A0A;}
 Chart.register(ChartDataLabels);
 
 // ============================================================
-// CLOUD SYNC — Firebase Realtime Database
+// LOCAL STORAGE — จัดเก็บข้อมูลในเครื่อง (localStorage)
 // ============================================================
-// วิธีตั้งค่า (ทำครั้งเดียว ~5 นาที):
-//  1. ไป https://console.firebase.google.com → สร้าง Project ใหม่
-//  2. ซ้ายมือ → Build → Realtime Database → Create database
-//     เลือก region ที่ใกล้ที่สุด (asia-southeast1) → Start in test mode
-//  3. ซ้ายมือ → Project Settings → Your apps → </> (Web)
-//     ตั้งชื่อ app → Register app → คัดลอก firebaseConfig
-//  4. วางค่าในตัวแปร FB_CONFIG ด้านล่างแล้ว push ไป GitHub ใหม่
-const FB_CONFIG = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT.firebaseapp.com",
-  databaseURL:       "https://YOUR_PROJECT-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId:         "YOUR_PROJECT",
-  storageBucket:     "YOUR_PROJECT.firebasestorage.app",
-  messagingSenderId: "000000000000",
-  appId:             "YOUR_APP_ID"
-};
-const FB_PATH = 'nbtc16oper16/catdata'; // เปลี่ยนได้ถ้าต้องการแยก environment
-
-let fbDB = null;
-
-function initFirebase() {
-  if (!FB_CONFIG.apiKey || FB_CONFIG.apiKey === 'YOUR_API_KEY') {
-    setSyncStatus('noconf'); return;
-  }
-  try {
-    const app = firebase.initializeApp(FB_CONFIG);
-    fbDB = firebase.database(app);
-  } catch(e) { console.warn('Firebase init:', e.message); setSyncStatus('error'); }
-}
 
 function setSyncStatus(state) {
   const el = document.getElementById('sync-status');
   if (!el) return;
   const map = {
-    idle:   {icon:'☁️', txt:'Cloud ซิงค์แล้ว',   cls:'sync-ok'},
-    saving: {icon:'⏳', txt:'กำลังบันทึก Cloud...', cls:'sync-busy'},
-    loading:{icon:'⏳', txt:'โหลดจาก Cloud...',    cls:'sync-busy'},
-    error:  {icon:'⚠️', txt:'Cloud ขัดข้อง',        cls:'sync-err'},
-    noconf: {icon:'📁', txt:'Local เท่านั้น',         cls:'sync-off'},
+    saved:  {icon:'💾', txt:'บันทึกแล้ว',        cls:'sync-ok'},
+    saving: {icon:'⏳', txt:'กำลังบันทึก...',     cls:'sync-busy'},
+    loading:{icon:'⏳', txt:'กำลังโหลด...',       cls:'sync-busy'},
+    error:  {icon:'⚠️', txt:'บันทึกล้มเหลว',      cls:'sync-err'},
+    noconf: {icon:'📁', txt:'Local เท่านั้น',      cls:'sync-off'},
+    idle:   {icon:'💾', txt:'บันทึกแล้ว',         cls:'sync-ok'},
   };
   const m = map[state] || map.noconf;
   el.innerHTML = m.icon + ' ' + m.txt;
@@ -505,15 +475,14 @@ function applyCatSnapshot(snap) {
 
 // ─── Save ──────────────────────────────────────────────────────
 function saveDataCloud() {
-  const snap = getCatSnapshot();
-  try { localStorage.setItem('nbtc16-catdata', JSON.stringify(snap)); } catch(e){}
-  try { localStorage.setItem('nbtc16-importDB', JSON.stringify(window.importDB||{})); } catch(e){}
-  try { localStorage.setItem('nbtc16-colsPerKey', JSON.stringify(colsPerKey||{})); } catch(e){}
-  if (!fbDB) return;
   setSyncStatus('saving');
-  fbDB.ref(FB_PATH).set(snap)
-    .then(() => { setSyncStatus('idle'); toast('☁️ Cloud sync สำเร็จ', 'ok'); })
-    .catch(e => { setSyncStatus('error'); toast('⚠️ Cloud sync ล้มเหลว: ' + e.message, 'er'); });
+  const snap = getCatSnapshot();
+  let ok = true;
+  try { localStorage.setItem('nbtc16-catdata', JSON.stringify(snap)); } catch(e){ ok=false; }
+  try { localStorage.setItem('nbtc16-importDB', JSON.stringify(window.importDB||{})); } catch(e){ ok=false; }
+  try { localStorage.setItem('nbtc16-colsPerKey', JSON.stringify(colsPerKey||{})); } catch(e){ ok=false; }
+  setSyncStatus(ok ? 'saved' : 'error');
+  if (!ok) toast('⚠️ บันทึกล้มเหลว: พื้นที่เก็บข้อมูลเต็ม', 'er');
 }
 
 // ─── Re-aggregate from stored importDB (รับประกันข้อมูลถูกต้องแม้ snapshot มีปัญหา) ────
@@ -532,7 +501,7 @@ function reAggregateFromImportDB() {
 
 // ─── Load ──────────────────────────────────────────────────────
 function loadDataCloud(onDone) {
-  // 1. localStorage ก่อน (เร็ว, ออฟไลน์ได้)
+  setSyncStatus('loading');
   let localSnap = null;
   try { const raw = localStorage.getItem('nbtc16-catdata'); if(raw) localSnap = JSON.parse(raw); } catch(e){}
   if (localSnap && applyCatSnapshot(localSnap)) {
@@ -540,35 +509,13 @@ function loadDataCloud(onDone) {
     try { const cpk = localStorage.getItem('nbtc16-colsPerKey'); if(cpk) colsPerKey=JSON.parse(cpk); } catch(e){}
     // Re-aggregate จาก raw records เสมอ — รับประกัน 100% ว่าข้อมูลถูกต้องหลัง reload
     reAggregateFromImportDB();
-    setSyncStatus(fbDB ? 'loading' : 'noconf');
+    setSyncStatus('saved');
     onDone();
-    // background: ถ้า Firebase มีข้อมูลใหม่กว่า ให้ update
-    if (fbDB) {
-      setSyncStatus('loading');
-      fbDB.ref(FB_PATH).once('value').then(snap => {
-        const fbSnap = snap.val();
-        if (fbSnap && fbSnap.ts && localSnap.ts && fbSnap.ts > localSnap.ts) {
-          applyCatSnapshot(fbSnap);
-          try { localStorage.setItem('nbtc16-catdata', JSON.stringify(fbSnap)); } catch(e){}
-          rebuildAfterLoad();
-          toast('☁️ อัปเดตจาก Cloud เรียบร้อย', 'ok');
-        }
-        setSyncStatus(fbDB ? 'idle' : 'noconf');
-      }).catch(() => setSyncStatus('error'));
-    }
     return;
   }
-  // 2. ไม่มี localStorage → ลอง Firebase
-  if (!fbDB) { setSyncStatus('noconf'); onDone(); return; }
-  setSyncStatus('loading');
-  fbDB.ref(FB_PATH).once('value')
-    .then(snap => {
-      const data = snap.val();
-      if (data) { applyCatSnapshot(data); setSyncStatus('idle'); }
-      else setSyncStatus('idle');
-      onDone();
-    })
-    .catch(() => { setSyncStatus('error'); onDone(); });
+  // ไม่มีข้อมูลใน localStorage → เริ่มด้วยข้อมูลต้นฉบับ
+  setSyncStatus('noconf');
+  onDone();
 }
 
 // ─── Rebuild ───────────────────────────────────────────────────
@@ -579,14 +526,14 @@ function rebuildAfterLoad() {
   if (currentTab !== 'ov') buildCat(currentTab);
 }
 
-// ─── Clear Cloud ───────────────────────────────────────────────
+// ─── Clear Local ───────────────────────────────────────────────
 function clearDataCloud() {
-  if (!confirm('ลบข้อมูล import ทั้งหมดออกจาก Cloud และ Local?\nกราฟจะกลับสู่ข้อมูลต้นฉบับ')) return;
+  if (!confirm('⚠️ ลบข้อมูลที่ import ทั้งหมดออกจากเครื่องนี้?\nกราฟจะกลับสู่ข้อมูลต้นฉบับ\n\n(การดำเนินการนี้ไม่สามารถย้อนกลับได้)')) return;
   localStorage.removeItem('nbtc16-catdata');
   localStorage.removeItem('nbtc16-importDB');
   localStorage.removeItem('nbtc16-colsPerKey');
   colsPerKey = {};
-  if (fbDB) fbDB.ref(FB_PATH).remove().catch(()=>{});
+  window.importDB = {};
   location.reload();
 }
 
@@ -1344,6 +1291,7 @@ function exportAllCSV(){
 // ============================================================
 let impTarget = null, impPreview = null, impDetectedCols = null;
 let colsPerKey = {}; // บันทึก detected cols ต่อ category เพื่อ re-aggregate ตอน reload
+window.importDB = {}; // raw records ต่อ category
 
 function openImpForCurrent() {
   const key = currentTab === 'ov' ? Object.keys(CAT)[0] : currentTab;
@@ -1700,10 +1648,16 @@ function updateDynamicLabels() {
   }
 }
 applyTheme();
-initFirebase();
 loadDataCloud(() => {
   buildOverview();
   updateDynamicLabels();
+});
+
+// Auto-save เมื่อผู้ใช้ปิด tab หรือ navigate ออก
+window.addEventListener('beforeunload', () => {
+  if (Object.keys(window.importDB || {}).length > 0) {
+    saveDataCloud();
+  }
 });
 </script>
 </body>
