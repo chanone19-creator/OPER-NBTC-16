@@ -7,6 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <style>
 :root {
   --navy:#0F2447; --navy2:#1B3A6B; --blue:#2563EB; --blue2:#3B82F6;
@@ -206,6 +208,21 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:t
 .toast.er{background:var(--red);}
 .toast.inf{background:var(--amber);}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+/* SYNC BADGE */
+.sync-badge{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;margin-top:6px;cursor:default;user-select:none;}
+.sync-ok  {background:#DCFCE7;color:#166534;}
+.sync-busy{background:#FEF9C3;color:#92400E;animation:pulse 1s infinite;}
+.sync-err {background:#FEE2E2;color:#991B1B;}
+.sync-off {background:#F1F5F9;color:#64748B;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+body.dark .sync-ok  {background:#14532D;color:#86EFAC;}
+body.dark .sync-busy{background:#78350F;color:#FDE68A;}
+body.dark .sync-err {background:#7F1D1D;color:#FCA5A5;}
+body.dark .sync-off {background:#1E293B;color:#94A3B8;}
+.clear-cloud-btn{width:100%;background:transparent;border:1px solid #FCA5A5;color:#DC2626;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;margin-top:4px;}
+.clear-cloud-btn:hover{background:#FEE2E2;}
+body.dark .clear-cloud-btn{border-color:#7F1D1D;color:#FCA5A5;}
+body.dark .clear-cloud-btn:hover{background:#450A0A;}
 </style>
 </head>
 <body>
@@ -259,6 +276,8 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:t
     <button class="nav-btn" onclick="exportAllCSV()">
       <span class="nav-icon">⬇</span>ส่งออก CSV
     </button>
+    <div id="sync-status" class="sync-badge sync-off" title="สถานะ Cloud Sync">☁️ กำลังเชื่อมต่อ...</div>
+    <button class="clear-cloud-btn" onclick="clearDataCloud()" title="รีเซ็ตข้อมูล import ทั้งหมด">🗑 ล้างข้อมูล Cloud</button>
   </div>
 </div>
 
@@ -269,7 +288,7 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:t
 <div class="section active" id="sec-ov">
   <div class="sec-hdr">
     <div class="sec-icon" style="background:#EFF6FF;">📊</div>
-    <div><h2>ภาพรวมผลการตรวจสอบ กสทช. เขต ๑๖</h2><p>ข้อมูลสะสม ปีงบประมาณ ๒๕๖๐–๒๕๖๙ | ๕ จังหวัด (ราชบุรี กาญจนบุรี สุพรรณบุรี นครปฐม สมุทรสาคร)</p></div>
+    <div><h2>ภาพรวมผลการตรวจสอบ กสทช. เขต ๑๖</h2><p>ข้อมูลสะสม ปีงบประมาณ ๒๕๖๐–๒๕๖๙ | ๕ จังหวัด (ราชบุรี นครปฐม เพชรบุรี สมุทรสาคร สมุทรสงคราม)</p></div>
   </div>
 
   <div class="kpi-row" id="ov-kpis"></div>
@@ -382,6 +401,152 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:t
 
 <script>
 Chart.register(ChartDataLabels);
+
+// ============================================================
+// CLOUD SYNC — Firebase Realtime Database
+// ============================================================
+// วิธีตั้งค่า (ทำครั้งเดียว ~5 นาที):
+//  1. ไป https://console.firebase.google.com → สร้าง Project ใหม่
+//  2. ซ้ายมือ → Build → Realtime Database → Create database
+//     เลือก region ที่ใกล้ที่สุด (asia-southeast1) → Start in test mode
+//  3. ซ้ายมือ → Project Settings → Your apps → </> (Web)
+//     ตั้งชื่อ app → Register app → คัดลอก firebaseConfig
+//  4. วางค่าในตัวแปร FB_CONFIG ด้านล่างแล้ว push ไป GitHub ใหม่
+const FB_CONFIG = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT.firebaseapp.com",
+  databaseURL:       "https://YOUR_PROJECT-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "YOUR_PROJECT",
+  storageBucket:     "YOUR_PROJECT.firebasestorage.app",
+  messagingSenderId: "000000000000",
+  appId:             "YOUR_APP_ID"
+};
+const FB_PATH = 'nbtc16oper16/catdata'; // เปลี่ยนได้ถ้าต้องการแยก environment
+
+let fbDB = null;
+
+function initFirebase() {
+  if (!FB_CONFIG.apiKey || FB_CONFIG.apiKey === 'YOUR_API_KEY') {
+    setSyncStatus('noconf'); return;
+  }
+  try {
+    const app = firebase.initializeApp(FB_CONFIG);
+    fbDB = firebase.database(app);
+  } catch(e) { console.warn('Firebase init:', e.message); setSyncStatus('error'); }
+}
+
+function setSyncStatus(state) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  const map = {
+    idle:   {icon:'☁️', txt:'Cloud ซิงค์แล้ว',   cls:'sync-ok'},
+    saving: {icon:'⏳', txt:'กำลังบันทึก Cloud...', cls:'sync-busy'},
+    loading:{icon:'⏳', txt:'โหลดจาก Cloud...',    cls:'sync-busy'},
+    error:  {icon:'⚠️', txt:'Cloud ขัดข้อง',        cls:'sync-err'},
+    noconf: {icon:'📁', txt:'Local เท่านั้น',         cls:'sync-off'},
+  };
+  const m = map[state] || map.noconf;
+  el.innerHTML = m.icon + ' ' + m.txt;
+  el.className = 'sync-badge ' + m.cls;
+}
+
+// ─── Snapshot helpers ──────────────────────────────────────────
+function getCatSnapshot() {
+  const cats = {};
+  Object.entries(CAT).forEach(([k,c]) => {
+    cats[k] = {
+      totals: [...c.totals],
+      passed: [...c.passed],
+      failed: [...c.failed],
+      prov:  Object.fromEntries(Object.entries(c.prov).map(([p,v])=>[p,[...v]])),
+      types: Object.fromEntries(Object.entries(c.types).map(([t,v])=>[t,[...v]])),
+    };
+  });
+  return { years: [...YEARS], cats, ts: Date.now() };
+}
+
+function applyCatSnapshot(snap) {
+  if (!snap || !snap.years || !snap.cats) return false;
+  YEARS.length = 0;
+  snap.years.forEach(y => YEARS.push(y));
+  Object.entries(snap.cats).forEach(([k, data]) => {
+    if (!CAT[k]) return;
+    if (data.totals) CAT[k].totals = [...data.totals];
+    if (data.passed) CAT[k].passed = [...data.passed];
+    if (data.failed) CAT[k].failed = [...data.failed];
+    if (data.prov)  Object.entries(data.prov).forEach(([p,v])=>{ if(p in CAT[k].prov) CAT[k].prov[p]=[...v]; });
+    if (data.types) Object.entries(data.types).forEach(([t,v])=>{ if(t in CAT[k].types) CAT[k].types[t]=[...v]; });
+    delete CAT[k].monthly; delete CAT[k].monthlyPassed;
+  });
+  return true;
+}
+
+// ─── Save ──────────────────────────────────────────────────────
+function saveDataCloud() {
+  const snap = getCatSnapshot();
+  try { localStorage.setItem('nbtc16-catdata', JSON.stringify(snap)); } catch(e){}
+  try { localStorage.setItem('nbtc16-importDB', JSON.stringify(window.importDB||{})); } catch(e){}
+  if (!fbDB) return;
+  setSyncStatus('saving');
+  fbDB.ref(FB_PATH).set(snap)
+    .then(() => { setSyncStatus('idle'); toast('☁️ Cloud sync สำเร็จ', 'ok'); })
+    .catch(e => { setSyncStatus('error'); toast('⚠️ Cloud sync ล้มเหลว: ' + e.message, 'er'); });
+}
+
+// ─── Load ──────────────────────────────────────────────────────
+function loadDataCloud(onDone) {
+  // 1. localStorage ก่อน (เร็ว, ออฟไลน์ได้)
+  let localSnap = null;
+  try { const raw = localStorage.getItem('nbtc16-catdata'); if(raw) localSnap = JSON.parse(raw); } catch(e){}
+  if (localSnap && applyCatSnapshot(localSnap)) {
+    try { const imp = localStorage.getItem('nbtc16-importDB'); if(imp) window.importDB=JSON.parse(imp); } catch(e){}
+    onDone();
+    // background: ถ้า Firebase มีข้อมูลใหม่กว่า ให้ update
+    if (fbDB) {
+      setSyncStatus('loading');
+      fbDB.ref(FB_PATH).once('value').then(snap => {
+        const fbSnap = snap.val();
+        if (fbSnap && fbSnap.ts && localSnap.ts && fbSnap.ts > localSnap.ts) {
+          applyCatSnapshot(fbSnap);
+          try { localStorage.setItem('nbtc16-catdata', JSON.stringify(fbSnap)); } catch(e){}
+          rebuildAfterLoad();
+          toast('☁️ อัปเดตจาก Cloud เรียบร้อย', 'ok');
+        }
+        setSyncStatus(fbDB ? 'idle' : 'noconf');
+      }).catch(() => setSyncStatus('error'));
+    }
+    return;
+  }
+  // 2. ไม่มี localStorage → ลอง Firebase
+  if (!fbDB) { setSyncStatus('noconf'); onDone(); return; }
+  setSyncStatus('loading');
+  fbDB.ref(FB_PATH).once('value')
+    .then(snap => {
+      const data = snap.val();
+      if (data) { applyCatSnapshot(data); setSyncStatus('idle'); }
+      else setSyncStatus('idle');
+      onDone();
+    })
+    .catch(() => { setSyncStatus('error'); onDone(); });
+}
+
+// ─── Rebuild ───────────────────────────────────────────────────
+function rebuildAfterLoad() {
+  document.querySelectorAll('[data-built]').forEach(el => { el.dataset.built=''; el.innerHTML=''; });
+  buildOverview();
+  updateDynamicLabels();
+  if (currentTab !== 'ov') buildCat(currentTab);
+}
+
+// ─── Clear Cloud ───────────────────────────────────────────────
+function clearDataCloud() {
+  if (!confirm('ลบข้อมูล import ทั้งหมดออกจาก Cloud และ Local?\nกราฟจะกลับสู่ข้อมูลต้นฉบับ')) return;
+  localStorage.removeItem('nbtc16-catdata');
+  localStorage.removeItem('nbtc16-importDB');
+  if (fbDB) fbDB.ref(FB_PATH).remove().catch(()=>{});
+  location.reload();
+}
+
 // ============================================================
 // DATA
 // ============================================================
@@ -1342,6 +1507,7 @@ function doImport() {
   const added = impPreview.length;
   closeImp();
   toast(`เพิ่มสำเร็จ ${added} รายการใหม่ (รวมสะสม ${merged.length} รายการ) — อัปเดต ${CAT[impTarget].label} แล้ว`, 'ok');
+  saveDataCloud();
 }
 
 // TOAST helper
@@ -1422,8 +1588,11 @@ function updateDynamicLabels() {
   if (trendTitle) trendTitle.innerHTML = `📈 แนวโน้มการตรวจสอบรายปี (ทุกหมวด พ.ศ. ${first}–${last})`;
 }
 applyTheme();
-buildOverview();
-updateDynamicLabels();
+initFirebase();
+loadDataCloud(() => {
+  buildOverview();
+  updateDynamicLabels();
+});
 </script>
 </body>
 </html>
