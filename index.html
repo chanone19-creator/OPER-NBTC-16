@@ -322,7 +322,7 @@ body.dark .clear-cloud-btn:hover{background:#450A0A;}
   </div>
 
   <div class="forecast-card" style="margin-top:14px;">
-    <div class="fc-title">🔮 การพยากรณ์ปีงบประมาณ 2570 (Linear Regression)</div>
+    <div class="fc-title" id="ov-fc-title">🔮 การพยากรณ์ปีงบประมาณ 2570 (Linear Regression)</div>
     <div class="forecast-grid" id="ov-forecast"></div>
   </div>
 </div>
@@ -927,6 +927,10 @@ function updateOvTrend() {
     },
     scales:{y:{beginAtZero:true}}
   });
+
+  const forecastYear = filtLastYear + 1;
+  const fcTitle = document.getElementById('ov-fc-title');
+  if (fcTitle) fcTitle.textContent = `🔮 การพยากรณ์ปีงบประมาณ ${forecastYear} (Linear Regression)`;
 
   document.getElementById('ov-forecast').innerHTML=Object.values(CAT).map(c=>{
     const filtData=filtIdx.map(i=>c.totals[i]||0);
