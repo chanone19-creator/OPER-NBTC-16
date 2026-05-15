@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard ผลการตรวจสอบ | กสทช. เขต ๑๖</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
   --navy:#0F2447; --navy2:#1B3A6B; --blue:#2563EB; --blue2:#3B82F6;
@@ -144,6 +145,37 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:t
 .fc-lbl{font-size:10px;opacity:.6;margin-top:2px;}
 .fc-trend{font-size:11px;font-weight:700;margin-top:4px;}
 @media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr;}.stat-grid{grid-template-columns:repeat(2,1fr);}.cause-grid{grid-template-columns:1fr;}}
+/* MODAL */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:none;align-items:center;justify-content:center;}
+.modal-ov.open{display:flex;}
+.modal-box{background:#fff;border-radius:14px;padding:24px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.modal-hdr h3{font-size:15px;font-weight:700;color:var(--navy);}
+.modal-close{background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);line-height:1;}
+.modal-close:hover{color:var(--text);}
+/* DROP ZONE */
+.dz{border:2px dashed var(--border);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:.15s;background:var(--light);}
+.dz:hover,.dz.dg{border-color:var(--blue);background:#EFF6FF;}
+.dz-ico{font-size:36px;margin-bottom:8px;}
+.dz p{font-size:13px;color:var(--muted);}
+.dz strong{color:var(--navy);}
+/* IMPORT RESULT */
+.imp-summary{background:var(--light);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:12px;}
+.imp-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border);}
+.imp-row:last-child{border-bottom:none;}
+.imp-num{font-weight:700;color:var(--navy);}
+/* COL DETECT */
+.col-detect{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+.cd-item{background:var(--light);border:1px solid var(--border);border-radius:6px;padding:8px 10px;}
+.cd-lbl{font-size:10px;color:var(--muted);font-weight:600;}
+.cd-val{font-size:12px;color:var(--navy);font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* TOAST */
+.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--navy);color:#fff;border-radius:8px;padding:10px 16px;font-size:13px;display:flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,.2);animation:fadeIn .2s ease;max-width:320px;}
+.toast.ok{background:var(--green);}
+.toast.er{background:var(--red);}
+.toast.inf{background:var(--amber);}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 </style>
 </head>
 <body>
@@ -188,6 +220,9 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:t
   </div>
   <div class="nav-group" style="margin-top:auto;padding-top:12px;">
     <div class="nav-label">เครื่องมือ</div>
+    <button class="nav-btn" onclick="openImpForCurrent()">
+      <span class="nav-icon">⬆</span>นำเข้า Excel
+    </button>
     <button class="nav-btn" onclick="exportAllCSV()">
       <span class="nav-icon">⬇</span>ส่งออก CSV
     </button>
@@ -283,6 +318,34 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:t
 
 </div><!-- /main -->
 </div><!-- /layout -->
+
+<!-- IMPORT MODAL -->
+<div class="modal-ov" id="imp-modal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3>⬆ นำเข้าข้อมูลจาก Excel — <span id="imp-cat-label" style="color:var(--blue)"></span></h3>
+      <button class="modal-close" onclick="closeImp()">✕</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">รองรับ <strong>.xlsx</strong> เท่านั้น · ระบบจะ auto-detect คอลัมน์ วันที่ / จังหวัด / ผลการตรวจ / ประเภท</p>
+    <div class="dz" id="imp-dz" onclick="document.getElementById('imp-file').click()">
+      <div class="dz-ico">📂</div>
+      <p><strong>คลิกเพื่อเลือกไฟล์</strong> หรือลากวางที่นี่</p>
+      <p id="imp-fname" style="margin-top:6px;font-size:11px;color:var(--blue);font-weight:600;"></p>
+    </div>
+    <input type="file" id="imp-file" accept=".xlsx" style="display:none" onchange="handleImpFile(event)">
+    <div id="imp-res" style="display:none;">
+      <div class="imp-summary" id="imp-summary"></div>
+      <div class="col-detect" id="imp-cols"></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-ghost" onclick="closeImp()">ยกเลิก</button>
+      <button class="btn btn-primary" id="btn-imp-ok" style="display:none;" onclick="doImport()">✓ บันทึกและอัปเดตกราฟ</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-wrap" id="toast-wrap"></div>
 
 <script>
 // ============================================================
@@ -753,6 +816,7 @@ function buildCat(key){
       </div>`).join('');
 
     renderYrTable(key);
+    addImpBtn(key);
   },50);
 }
 
@@ -777,7 +841,9 @@ function yoyArr2(vals){return vals.map((v,i)=>i===0?null:Math.round((v-vals[i-1]
 // ============================================================
 // TAB SWITCHING
 // ============================================================
+let currentTab = 'ov';
 function showTab(key){
+  currentTab = key;
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById(`sec-${key}`).classList.add('active');
@@ -802,6 +868,226 @@ function exportAllCSV(){
   a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
   a.download='NBTC16_data_2560-2569.csv';
   a.click();
+}
+
+// ============================================================
+// EXCEL IMPORT
+// ============================================================
+let impTarget = null, impPreview = null, impDetectedCols = null;
+
+function openImpForCurrent() {
+  const key = currentTab === 'ov' ? Object.keys(CAT)[0] : currentTab;
+  openImp(key);
+}
+
+function openImp(key) {
+  impTarget = key; impPreview = null; impDetectedCols = null;
+  document.getElementById('imp-cat-label').textContent = CAT[key]?.label || key;
+  document.getElementById('imp-res').style.display = 'none';
+  document.getElementById('btn-imp-ok').style.display = 'none';
+  document.getElementById('imp-file').value = '';
+  document.getElementById('imp-fname').textContent = '';
+  document.getElementById('imp-dz').classList.remove('dg');
+  document.getElementById('imp-modal').classList.add('open');
+}
+function closeImp() {
+  document.getElementById('imp-modal').classList.remove('open');
+  impTarget = impPreview = impDetectedCols = null;
+}
+
+// Drag-drop
+(function() {
+  const dz = document.getElementById('imp-dz');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dg'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dg'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('dg');
+    const f = e.dataTransfer.files[0];
+    if (f) processImpFile(f);
+  });
+})();
+
+function handleImpFile(e) {
+  const f = e.target.files[0];
+  if (f) processImpFile(f);
+}
+
+function processImpFile(file) {
+  if (!file.name.toLowerCase().endsWith('.xlsx')) {
+    toast('รองรับเฉพาะไฟล์ .xlsx', 'er'); return;
+  }
+  document.getElementById('imp-fname').textContent = '📄 ' + file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      const recs = rows.map(r => Object.fromEntries(
+        Object.entries(r).map(([k, v]) => [String(k).trim(), String(v ?? '').trim()])
+      ));
+      showImpPreview(recs);
+    } catch (err) {
+      toast('อ่านไฟล์ไม่ได้: ' + err.message, 'er');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// Auto-detect column names
+function detectCols(rows) {
+  if (!rows.length) return {};
+  const keys = Object.keys(rows[0]);
+  const find = (pats) => keys.find(k => pats.some(p => k.includes(p))) || null;
+  return {
+    date:   find(['วันที่','date','Date','วันที']),
+    prov:   find(['จังหวัด','province','Province','จว.']),
+    result: find(['ผลการตรวจ','ผล','result','Result','สถานะ','status']),
+    type:   find(['ประเภทสถานี','ประเภท','type','Type','หมวด']),
+  };
+}
+
+// Extract Buddhist year from various formats
+function extractYear(val) {
+  if (!val || val === '') return null;
+  const s = String(val).trim();
+  // DD/MM/YYYY or D/M/YYYY
+  const m1 = s.match(/\d{1,2}\/\d{1,2}\/(\d{4})/);
+  if (m1) { const y = +m1[1]; return (y >= 2560 && y <= 2599) ? y : (y >= 2017 && y <= 2099) ? y + 543 : null; }
+  // YYYY-MM-DD
+  const m2 = s.match(/^(\d{4})-\d{2}-\d{2}/);
+  if (m2) { const y = +m2[1]; return (y >= 2560 && y <= 2599) ? y : (y >= 2017 && y <= 2099) ? y + 543 : null; }
+  // Just a year number
+  const m3 = s.match(/^(\d{4})$/);
+  if (m3) { const y = +m3[1]; return (y >= 2560 && y <= 2599) ? y : (y >= 2017 && y <= 2099) ? y + 543 : null; }
+  // ข้อความปีพุทธศักราช เช่น "2569" embedded in longer string
+  const m4 = s.match(/\b(25[6-9]\d)\b/);
+  if (m4) return +m4[1];
+  return null;
+}
+
+function isPassResult(val) {
+  const v = String(val).toLowerCase();
+  return ['ผ่าน','pass','ถูกต้อง','ปกติ','สมบูรณ์','อนุมัติ','ตรงตามมาตรฐาน','compliant'].some(p => v.includes(p));
+}
+
+function showImpPreview(recs) {
+  if (!impTarget) return;
+  impPreview = recs;
+  impDetectedCols = detectCols(recs);
+
+  // Count valid year records
+  const validRecs = recs.filter(r => {
+    const yr = impDetectedCols.date ? extractYear(r[impDetectedCols.date]) : null;
+    return yr && YEARS.includes(yr);
+  });
+
+  const resEl = document.getElementById('imp-res');
+  resEl.style.display = 'block';
+
+  document.getElementById('imp-summary').innerHTML = `
+    <div class="imp-row"><span>📋 รายการทั้งหมดในไฟล์</span><span class="imp-num">${recs.length}</span></div>
+    <div class="imp-row"><span>✅ รายการที่ระบุปีได้ (2560–2569)</span><span class="imp-num" style="color:var(--green)">${validRecs.length}</span></div>
+    <div class="imp-row"><span>⚠ รายการที่ระบุปีไม่ได้</span><span class="imp-num" style="color:var(--amber)">${recs.length - validRecs.length}</span></div>`;
+
+  const colLabels = { date:'คอลัมน์วันที่', prov:'คอลัมน์จังหวัด', result:'คอลัมน์ผลการตรวจ', type:'คอลัมน์ประเภท' };
+  document.getElementById('imp-cols').innerHTML = Object.entries(impDetectedCols).map(([k, v]) => `
+    <div class="cd-item">
+      <div class="cd-lbl">${colLabels[k] || k}</div>
+      <div class="cd-val">${v ? '✓ ' + v : '<span style="color:var(--muted)">ไม่พบ</span>'}</div>
+    </div>`).join('');
+
+  document.getElementById('btn-imp-ok').style.display = validRecs.length ? 'inline-block' : 'none';
+  if (!validRecs.length) toast('ไม่พบรายการที่ระบุปีงบประมาณได้', 'inf');
+}
+
+function doImport() {
+  if (!impPreview || !impTarget) return;
+  const cols = impDetectedCols;
+
+  // Initialize aggregation arrays
+  const totals = Array(10).fill(0);
+  const passed = Array(10).fill(0);
+  const failed = Array(10).fill(0);
+  const prov = {};
+  PROVS.forEach(p => { prov[p] = Array(10).fill(0); });
+  const types = {};
+
+  impPreview.forEach(r => {
+    const yr = cols.date ? extractYear(r[cols.date]) : null;
+    const yi = yr ? YEARS.indexOf(yr) : -1;
+    if (yi === -1) return;
+
+    totals[yi]++;
+    const pass = cols.result ? isPassResult(r[cols.result]) : true;
+    if (pass) passed[yi]++; else failed[yi]++;
+
+    // Province match
+    if (cols.prov) {
+      const pv = String(r[cols.prov]).trim();
+      const matchP = PROVS.find(p => pv.includes(p) || p.includes(pv));
+      if (matchP) prov[matchP][yi]++;
+    }
+
+    // Type
+    if (cols.type) {
+      const t = String(r[cols.type]).trim();
+      if (t) {
+        if (!types[t]) types[t] = Array(10).fill(0);
+        types[t][yi]++;
+      }
+    }
+  });
+
+  // Update CAT data
+  CAT[impTarget].totals = totals;
+  CAT[impTarget].passed = passed;
+  CAT[impTarget].failed = failed;
+  CAT[impTarget].prov = prov;
+  if (Object.keys(types).length > 0) CAT[impTarget].types = types;
+
+  // Store raw records for table display
+  if (!window.importDB) window.importDB = {};
+  window.importDB[impTarget] = impPreview;
+
+  // Rebuild section (reset built flag so it rebuilds)
+  const container = document.getElementById('cat-' + impTarget + '-content');
+  if (container) { container.dataset.built = ''; container.innerHTML = ''; }
+
+  // Rebuild overview KPIs if visible
+  buildOverview();
+
+  // Rebuild the category if currently active
+  if (currentTab === impTarget) buildCat(impTarget);
+
+  const added = impPreview.filter(r => {
+    const yr = cols.date ? extractYear(r[cols.date]) : null;
+    return yr && YEARS.includes(yr);
+  }).length;
+
+  closeImp();
+  toast(`นำเข้าสำเร็จ ${added} รายการ — อัปเดต ${CAT[impTarget].label} แล้ว`, 'ok');
+}
+
+// TOAST helper
+function toast(msg, type = '') {
+  const w = document.getElementById('toast-wrap');
+  const d = document.createElement('div');
+  d.className = 'toast ' + type;
+  d.textContent = msg;
+  w.appendChild(d);
+  setTimeout(() => d.remove(), 4000);
+}
+
+// Add import button to each category filter bar (called inside buildCat)
+function addImpBtn(key) {
+  const fb = document.querySelector(`#cat-${key}-content .fbar`);
+  if (!fb || fb.querySelector('.imp-btn')) return;
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-success imp-btn';
+  btn.innerHTML = '⬆ นำเข้า Excel';
+  btn.onclick = () => openImp(key);
+  fb.appendChild(btn);
 }
 
 // ============================================================
