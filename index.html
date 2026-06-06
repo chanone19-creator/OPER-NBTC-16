@@ -763,11 +763,16 @@ const CAT = {
 // ============================================================
 function linReg(vals) {
   const n = vals.length;
+  if (n < 2) {
+    const v = n === 1 ? vals[0] : 0;
+    return {slope:0,intercept:v,r2:1,forecast:v};
+  }
   const xs = Array.from({length:n},(_,i)=>i);
   const sx=xs.reduce((a,b)=>a+b,0), sy=vals.reduce((a,b)=>a+b,0);
   const sxy=xs.reduce((s,x,i)=>s+x*vals[i],0);
   const sx2=xs.reduce((s,x)=>s+x*x,0);
-  const slope=(n*sxy-sx*sy)/(n*sx2-sx*sx);
+  const denom = n*sx2-sx*sx;
+  const slope = denom === 0 ? 0 : (n*sxy-sx*sy)/denom;
   const intercept=(sy-slope*sx)/n;
   const ym=sy/n;
   const ssRes=vals.reduce((s,y,i)=>s+Math.pow(y-(slope*i+intercept),2),0);
@@ -775,7 +780,10 @@ function linReg(vals) {
   const r2=ssTot===0?1:1-ssRes/ssTot;
   return {slope,intercept,r2,forecast:slope*n+intercept};
 }
-function cagr(a,b,n){return (Math.pow(b/a,1/(n-1))-1)*100;}
+function cagr(a,b,n){
+  if (!a || a <= 0 || !b || b <= 0 || n <= 1) return 0;
+  return (Math.pow(b/a,1/(n-1))-1)*100;
+}
 function ma3(vals){return vals.map((_,i)=>i<2?null:Math.round((vals[i]+vals[i-1]+vals[i-2])/3));}
 function yoy(vals){return vals.map((v,i)=>i===0?null:Math.round((v-vals[i-1])/vals[i-1]*100));}
 function totalSlice(vals,startIdx=0,endIdx=9){return vals.slice(startIdx,endIdx+1).reduce((a,b)=>a+b,0);}
@@ -954,7 +962,7 @@ function buildCat(key){
   if(!container||container.dataset.built==='1')return;
   container.dataset.built='1';
 
-  const totYr=c.totals.slice(0,-1); // excl ปีล่าสุด (อาจยังไม่ครบปี)
+  const totYr=c.totals.length>1?c.totals.slice(0,-1):c.totals.slice(); // excl ปีล่าสุด ถ้ามี >1 ปี
   const reg=linReg(totYr);
   const cagrVal=cagr(totYr[0],totYr[totYr.length-1],totYr.length);
   const ma=ma3(c.totals);
@@ -1516,7 +1524,9 @@ function aggregateRecords(key, allRecs) {
 
     if (cols.prov) {
       const pv = String(r[cols.prov]).trim();
-      const matchP = PROVS.find(p => pv.includes(p) || p.includes(pv));
+      // exact match ก่อน ลด false positive (เช่น "ราชบุรี" matched ในชื่อยาวอื่น)
+      let matchP = PROVS.find(p => pv === p);
+      if (!matchP) matchP = PROVS.find(p => pv.includes(p));
       if (matchP) prov[matchP][yi]++;
     }
 
@@ -1605,8 +1615,8 @@ function updateChartTheme(isDark) {
   const gridColor  = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)';
   const tickColor  = isDark ? '#94A3B8' : '#64748B';
   const legendColor= isDark ? '#E2E8F0' : '#1E293B';
-  Object.values(chartReg).forEach(ch => {
-    if (!ch) return;
+  Object.entries(chartReg).forEach(([id, ch]) => {
+    if (!ch || !ch.canvas) { delete chartReg[id]; return; } // กัน chart ที่ถูก destroy แล้ว
     // scales
     ['x','y'].forEach(ax => {
       if (ch.options.scales?.[ax]) {
@@ -1617,7 +1627,7 @@ function updateChartTheme(isDark) {
     // legend
     if (ch.options.plugins?.legend?.labels)
       ch.options.plugins.legend.labels.color = legendColor;
-    ch.update('none');
+    try { ch.update('none'); } catch(e) { delete chartReg[id]; }
   });
 }
 
